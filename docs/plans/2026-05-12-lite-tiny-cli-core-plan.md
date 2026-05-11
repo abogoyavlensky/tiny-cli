@@ -174,21 +174,21 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
-- [ ] **Step 1: Write failing option parser tests**
+- [x] **Step 1: Write failing option parser tests**
   Cover boolean globals, command options, options after the command, options after positional args, long values with space and equals, short values with space, combined short booleans, unknown options, missing values, and `--` end-of-options behavior.
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on parser assertions.
 
-- [ ] **Step 3: Implement option lookup and token loop**
+- [x] **Step 3: Implement option lookup and token loop**
   Build long and short option indexes from global and selected command specs. Parse tokens according to the approved rules. Insert parsed values into `:global` or `:opts` by option `:key`. Treat command-local/global spelling collisions for the selected command as spec errors.
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
   Run: `make test`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: parse tiny-cli options"`
 
 ### Task 4: Command, Args, Defaults, Required Values, And Validation

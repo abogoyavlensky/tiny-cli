@@ -70,6 +70,107 @@
       (is (some? (re-find #"Built-ins:" text)))
       (is (nil? (re-find #"--version" text))))))
 
+(def bool-app
+  {:name "pkg"
+   :version "1.2.3"
+   :commands [{:name "ship"
+               :doc "Ship a package."
+               :args [{:key :box}]
+               :opts [{:key :force?
+                       :short "f"
+                       :long "force"}
+                      {:key :dry-run?
+                       :short "d"
+                       :long "dry-run"}]
+               :run create!}]})
+
+(deftest option-parsing
+  (testing "parses global option before command"
+    (let [result (cli/parse app ["-v" "create" "feature/login"])]
+      (is (= :ok (:status result)))
+      (is (= {:verbose? true} (get-in result [:context :global])))
+      (is (= {:branch "feature/login"} (get-in result [:context :args])))))
+
+  (testing "parses global option after command"
+    (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+      (is (= :ok (:status result)))
+      (is (= {:verbose? true} (get-in result [:context :global])))))
+
+  (testing "parses command option before and after positional args"
+    (let [before (cli/parse app ["create" "--base" "main" "feature/login"])
+          after (cli/parse app ["create" "feature/login" "--base" "main"])]
+      (is (= :ok (:status before)))
+      (is (= "main" (get-in before [:context :opts :base])))
+      (is (= :ok (:status after)))
+      (is (= "main" (get-in after [:context :opts :base])))))
+
+  (testing "parses long value option with equals"
+    (let [result (cli/parse app ["create" "feature/login" "--base=main"])]
+      (is (= :ok (:status result)))
+      (is (= "main" (get-in result [:context :opts :base])))))
+
+  (testing "parses short value option with space"
+    (let [result (cli/parse app ["create" "-b" "main" "feature/login"])]
+      (is (= :ok (:status result)))
+      (is (= "main" (get-in result [:context :opts :base])))))
+
+  (testing "parses combined short booleans"
+    (let [result (cli/parse bool-app ["ship" "-fd" "box-1"])]
+      (is (= :ok (:status result)))
+      (is (= {:force? true :dry-run? true}
+             (get-in result [:context :opts])))))
+
+  (testing "parses mixed global and command short booleans after command"
+    (let [mixed-app {:name "mix"
+                     :opts [{:key :verbose?
+                             :short "v"
+                             :long "verbose"}]
+                     :commands [{:name "ship"
+                                 :args [{:key :box}]
+                                 :opts [{:key :force?
+                                         :short "f"
+                                         :long "force"}]
+                                 :run create!}]}
+          result (cli/parse mixed-app ["ship" "-vf" "box-1"])]
+      (is (= :ok (:status result)))
+      (is (= {:verbose? true} (get-in result [:context :global])))
+      (is (= {:force? true} (get-in result [:context :opts])))))
+
+  (testing "global and command option spelling collision is an error"
+    (let [conflict-app {:name "mix"
+                        :opts [{:key :global-force?
+                                :short "f"
+                                :long "force"}]
+                        :commands [{:name "ship"
+                                    :args [{:key :box}]
+                                    :opts [{:key :force?
+                                            :short "f"
+                                            :long "force"}]
+                                    :run create!}]}
+          result (cli/parse conflict-app ["ship" "box-1"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Option conflict" (:message result))))))
+
+  (testing "unknown option is an error"
+    (let [result (cli/parse app ["create" "feature/login" "--unknown"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Unknown option" (:message result))))))
+
+  (testing "missing option value is an error"
+    (let [result (cli/parse app ["create" "feature/login" "--base"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing value" (:message result))))))
+
+  (testing "end-of-options treats following values as positional"
+    (let [literal-app {:name "lit"
+                       :commands [{:name "show"
+                                   :args [{:key :value}]
+                                   :run create!}]}
+          result (cli/parse literal-app ["show" "--" "--not-an-option"])]
+      (is (= :ok (:status result)))
+      (is (= {:value "--not-an-option"}
+             (get-in result [:context :args]))))))
+
 #?(:lg
    (do
      (run-tests)
