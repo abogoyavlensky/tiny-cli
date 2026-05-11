@@ -4,7 +4,7 @@
 
 **Goal:** Build the v1 `tiny-cli` core library as a small `.cljc` CLI helper compatible first with let-go and Clojure, with Babashka compatibility kept unless a concrete blocker appears.
 
-**Tech Stack:** let-go, lgx, Clojure-compatible `.cljc`, embedded let-go `test` namespace, shell test runner.
+**Tech Stack:** let-go, lgx, Clojure-compatible `.cljc`, reader-conditional test namespace, shell test runner.
 
 ---
 
@@ -72,11 +72,12 @@ Validation specs have the documented shape `{:pred f :msg "..."}`. The predicate
 
 ### Testing Strategy
 
-Tests are let-go tests in `test/tiny_cli/core_test.lg`, using the embedded `test` namespace. The tests should focus on pure helpers first because that is the stable cross-host surface:
+Tests live in `test/tiny_cli/core_test.cljc` so CI can run the same assertions against let-go, Clojure, and Babashka. The test namespace should use reader conditionals to require let-go's embedded `test` namespace on `:lg` and `clojure.test` on `:default`, with both branches aliased as `test` and referring `deftest`, `is`, `testing`, and `run-tests`. The `:lg` branch should also require `os` for `os/exit`. Keep the shared assertions portable and focus on pure helpers first because that is the stable cross-host surface:
 
 - root and command help rendering
 - empty argv and global-options-only argv returning root help
 - root help, command help, and version tagged parse results
+- unknown command help, such as `help nope`
 - command selection
 - global options before and after the command
 - command options before and after positional args
@@ -89,24 +90,27 @@ Tests are let-go tests in `test/tiny_cli/core_test.lg`, using the embedded `test
 - validation success and failure
 - spec conflicts and malformed specs
 
-Add `test/run.sh` and update `Makefile` so `make test` runs the let-go tests through lgx with the local unreleased let-go binary:
+Add `test/run.sh` and update `Makefile` so `make test` runs the `.cljc` tests through all available targets. Let-Go is required and uses the local unreleased let-go binary:
 
 ```bash
-LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg
+LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc
 ```
 
-Clojure and Babashka compatibility should be checked with load smoke commands if the corresponding executables are available. These are verification steps, not blockers if the tools are absent:
+Clojure and Babashka test runs should execute the same `core_test.cljc` file if the corresponding executables are available. They are skipped when the tools are absent:
 
 ```bash
-clojure -Sdeps '{:paths ["src"]}' -e "(require 'tiny-cli.core)"
-bb -cp src -e "(require 'tiny-cli.core)"
+clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)"
+bb -cp src:test -e "(require 'tiny-cli.core-test)"
 ```
+
+The test file should call `run-tests` at top level so requiring the namespace runs the suite. It must also exit nonzero on failures in each host branch: for let-go, check `test/*test-result*` after `run-tests` and call `os/exit 1` on failure; for Clojure/Babashka, inspect the returned `clojure.test` result map and call `System/exit 1` when `:fail` or `:error` is positive.
 
 ## File Structure
 
 - Modify `src/tiny_cli/core.cljc`: implement the v1 library.
-- Modify `test/tiny_cli/core_test.lg`: add let-go tests for pure API and selected runner-safe behavior.
-- Create `test/run.sh`: shell test runner for the repo's `test/` directory.
+- Rename/remove `test/tiny_cli/core_test.lg`: replace the current `.lg` starting point with `.cljc` tests.
+- Create `test/tiny_cli/core_test.cljc`: portable tests for pure API and selected runner-safe behavior.
+- Create `test/run.sh`: shell test runner for all configured targets.
 - Modify `Makefile`: point `make test` at `test/run.sh`, not the currently referenced `tests/run.sh`.
 - Optionally modify `README.md`: update the API example only if implementation choices differ from the existing documented example.
 
@@ -115,20 +119,21 @@ bb -cp src -e "(require 'tiny-cli.core)"
 ### Task 1: Test Harness And Public Contracts
 
 **Files:**
-- Modify: `test/tiny_cli/core_test.lg`
+- Delete: `test/tiny_cli/core_test.lg`
+- Create: `test/tiny_cli/core_test.cljc`
 - Create: `test/run.sh`
 - Modify: `Makefile`
 - Modify: `src/tiny_cli/core.cljc`
 
 - [ ] **Step 1: Write failing public contract tests**
-  Add tests requiring `[tiny-cli.core :as cli]`. Cover that `root-help`, `command-help`, and `parse` exist, return strings/maps, and that an example app can produce root help, command help, and a version parse result.
+  Add tests requiring `[tiny-cli.core :as cli]`. Use reader-conditional requires for `test` and `os` on `:lg` and `clojure.test` on `:default`, with the test namespace aliased consistently as `test`. Add a top-level test runner form that exits nonzero on failures for each host. Cover that `root-help`, `command-help`, and `parse` exist, return strings/maps, and that an example app can produce root help, command help, and a version parse result.
 
 - [ ] **Step 2: Run tests to verify failure**
-  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL because the public functions are not implemented.
 
 - [ ] **Step 3: Add the repo test runner**
-  Create `test/run.sh` with `set -eu`, change to repo root, and run `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`. Run `chmod +x test/run.sh`. Update `Makefile` so `make test` invokes `bash test/run.sh`.
+  Create `test/run.sh` with `set -eu`, change to repo root, and run `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`. Then, if `clojure` is available, run `clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)"`; if `bb` is available, run `bb -cp src:test -e "(require 'tiny-cli.core-test)"`. Run `chmod +x test/run.sh`. Update `Makefile` so `make test` invokes `bash test/run.sh`.
 
 - [ ] **Step 4: Implement minimal public API stubs**
   Replace the current top-level `prn` in `src/tiny_cli/core.cljc`. Define the namespace only, then minimal `root-help`, `command-help`, `parse`, and `run!` functions. Return enough deterministic data/text to satisfy only the contract tests. Avoid top-level side effects.
@@ -143,14 +148,14 @@ bb -cp src -e "(require 'tiny-cli.core)"
 ### Task 2: Help Rendering
 
 **Files:**
-- Modify: `test/tiny_cli/core_test.lg`
+- Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
 - [ ] **Step 1: Write failing help rendering tests**
   Cover root help for app name, doc, usage, global options, command list, and built-ins. Cover command help for usage, command doc, positional arg placeholders, command options, global options, defaults, and command-help built-ins. Assert command help does not list version.
 
 - [ ] **Step 2: Run tests to verify failure**
-  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on missing or incomplete help text.
 
 - [ ] **Step 3: Implement deterministic help helpers**
@@ -166,14 +171,14 @@ bb -cp src -e "(require 'tiny-cli.core)"
 ### Task 3: Option Parsing
 
 **Files:**
-- Modify: `test/tiny_cli/core_test.lg`
+- Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
 - [ ] **Step 1: Write failing option parser tests**
   Cover boolean globals, command options, options after the command, options after positional args, long values with space and equals, short values with space, combined short booleans, unknown options, missing values, and `--` end-of-options behavior.
 
 - [ ] **Step 2: Run tests to verify failure**
-  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on parser assertions.
 
 - [ ] **Step 3: Implement option lookup and token loop**
@@ -189,14 +194,14 @@ bb -cp src -e "(require 'tiny-cli.core)"
 ### Task 4: Command, Args, Defaults, Required Values, And Validation
 
 **Files:**
-- Modify: `test/tiny_cli/core_test.lg`
+- Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
 - [ ] **Step 1: Write failing command and validation tests**
   Cover unknown command, too few args, too many args, fixed positional arg mapping, defaults, required option failures, successful validation, validation failure messages, malformed validation specs, missing command `:run`, missing option names, and duplicate command names.
 
 - [ ] **Step 2: Run tests to verify failure**
-  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on command/validation assertions.
 
 - [ ] **Step 3: Implement app spec checks and final parse assembly**
@@ -212,14 +217,14 @@ bb -cp src -e "(require 'tiny-cli.core)"
 ### Task 5: Built-ins And Runner
 
 **Files:**
-- Modify: `test/tiny_cli/core_test.lg`
+- Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
 - [ ] **Step 1: Write failing built-in and runner tests**
-  Cover `parse` results for empty argv, global-options-only argv, `help`, `help <command>`, `<command> --help`, `<command> -h`, `--help`, `-h`, `--version`, and `-v` when unclaimed. Cover that user-declared `-v` wins over built-in version in the phase where the option appears: global `-v` before a command is global, unclaimed `-v` before a command is version, command-local `-v` after a command is command-local, and unclaimed `-v` after a command is version. Cover `--version` error behavior when `:version` is absent. For `run!`, keep tests limited to behavior that does not require asserting process exit; prefer testing the pure interpreter path if one is factored out.
+  Cover `parse` results for empty argv, global-options-only argv, `help`, `help <command>`, `help <unknown-command>`, `<command> --help`, `<command> -h`, `--help`, `-h`, `--version`, and `-v` when unclaimed. Cover that user-declared `-v` wins over built-in version in the phase where the option appears: global `-v` before a command is global, unclaimed `-v` before a command is version, command-local `-v` after a command is command-local, and unclaimed `-v` after a command is version. Cover `--version` error behavior when `:version` is absent. For `run!`, keep tests limited to behavior that does not require asserting process exit; prefer testing the pure interpreter path if one is factored out.
 
 - [ ] **Step 2: Run tests to verify failure**
-  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+  Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on built-in result assertions.
 
 - [ ] **Step 3: Implement built-in parse results**
@@ -235,23 +240,23 @@ bb -cp src -e "(require 'tiny-cli.core)"
 - [ ] **Step 6: Commit**
   `git commit -m "feat: add tiny-cli built-ins and runner"`
 
-### Task 6: Cross-host Smoke Verification And Docs
+### Task 6: Cross-host Verification And Docs
 
 **Files:**
 - Modify: `README.md` if needed
 - Modify: `docs/initial_design.md` only if the implementation intentionally clarifies an ambiguity
 
-- [ ] **Step 1: Run let-go tests**
+- [ ] **Step 1: Run all configured target tests**
   Run: `make test`
-  Expected: PASS.
+  Expected: PASS. The runner must fail on let-go test failures and on Clojure/Babashka test failures when those executables are installed.
 
-- [ ] **Step 2: Run Clojure load smoke if available**
-  Run: `command -v clojure >/dev/null && clojure -Sdeps '{:paths ["src"]}' -e "(require 'tiny-cli.core)" || true`
-  Expected: no load error when `clojure` is installed; otherwise the command skips.
+- [ ] **Step 2: Run Clojure tests directly if available**
+  Run: `command -v clojure >/dev/null && clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)" || true`
+  Expected: tests pass when `clojure` is installed; otherwise the command skips.
 
-- [ ] **Step 3: Run Babashka load smoke if available**
-  Run: `command -v bb >/dev/null && bb -cp src -e "(require 'tiny-cli.core)" || true`
-  Expected: no load error when `bb` is installed; otherwise the command skips.
+- [ ] **Step 3: Run Babashka tests directly if available**
+  Run: `command -v bb >/dev/null && bb -cp src:test -e "(require 'tiny-cli.core-test)" || true`
+  Expected: tests pass when `bb` is installed; otherwise the command skips.
 
 - [ ] **Step 4: Build let-go bundle smoke**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b bin/tiny-cli src/tiny_cli/core.cljc`
@@ -265,10 +270,10 @@ bb -cp src -e "(require 'tiny-cli.core)"
 
 ## Verification Checklist
 
-- [ ] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.lg`
+- [ ] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
 - [ ] `make test`
-- [ ] Optional Clojure load smoke when `clojure` is installed
-- [ ] Optional Babashka load smoke when `bb` is installed
+- [ ] Optional Clojure test run when `clojure` is installed
+- [ ] Optional Babashka test run when `bb` is installed
 - [ ] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b bin/tiny-cli src/tiny_cli/core.cljc`
 
 ## Notes For Implementation
@@ -278,4 +283,4 @@ bb -cp src -e "(require 'tiny-cli.core)"
 - Do not add subcommands, optional args, variadic args, env var support, config files, shell completions, or middleware.
 - Avoid top-level side effects in `.cljc`; let-go AOT compilation evaluates top-level forms.
 - Prefer plain data and small helpers over protocols or macros.
-- Keep tests in `test/tiny_cli/core_test.lg`; Clojure and Babashka checks are smoke commands, not separate test suites for v1.
+- Keep tests in `test/tiny_cli/core_test.cljc`; Clojure and Babashka should run the same test namespace rather than separate test suites for v1.
