@@ -1,6 +1,7 @@
 (ns tiny-cli.core
   (:require #?(:lg [string :as str]
-               :default [clojure.string :as str])))
+               :default [clojure.string :as str])
+            #?(:lg [os])))
 
 
 (defn- join-lines
@@ -191,6 +192,13 @@
                    (concat (keys (long-index command-opts))
                            (keys (short-index command-opts)))))))
 
+(defn- version-available
+  [app]
+  (if (:version app)
+    {:status :version
+     :text (str (:name app) " " (:version app))}
+    (error-result "No version available.")))
+
 (defn- duplicate-command-name
   [commands]
   (loop [seen #{}
@@ -286,6 +294,10 @@
 (defn- first-option-conflict
   [app]
   (first (keep #(option-conflict (:opts app) (:opts %)) (:commands app))))
+
+(defn- short-claimed?
+  [opts short-name]
+  (contains? (short-index opts) (str "-" short-name)))
 
 (defn- app-spec-error
   [app]
@@ -419,6 +431,14 @@
               (command-built-ins (:name command))))
     (str "Unknown command: " command-name)))
 
+(defn- command-help-result
+  [app command-name]
+  (if-let [command (command-by-name app command-name)]
+    {:status :help
+     :command command
+     :text (command-help app command-name)}
+    (error-result (str "Unknown command: " command-name))))
+
 (defn parse
   [app argv]
   (if-let [spec-error (app-spec-error app)]
@@ -433,8 +453,27 @@
                 more (vec (rest tokens))]
             (cond
             (= "--version" token)
-            {:status :version
-             :text (str (:name app) " " (:version app))}
+            (version-available app)
+
+            (and (= "-v" token)
+                 (nil? command)
+                 (not (short-claimed? (:opts app) "v")))
+            (version-available app)
+
+            (and (nil? command)
+                 (= "help" token))
+            (if (seq more)
+              (command-help-result app (first more))
+              {:status :help
+               :command nil
+               :text (root-help app)})
+
+            (and (nil? command)
+                 (or (= "--help" token)
+                     (= "-h" token)))
+            {:status :help
+             :command nil
+             :text (root-help app)}
 
             (= "--" token)
             (if command
@@ -461,9 +500,21 @@
                                    (target-index :opts (:opts command) long-index))
                   all-shorts (merge (target-index :global (:opts app) short-index)
                                     (target-index :opts (:opts command) short-index))
+                  command-short-v? (short-claimed? (:opts command) "v")
                   parsed (parse-option-token state token more all-longs all-shorts)]
-              (if (= :error (:status parsed))
+              (cond
+                (and (= "-v" token)
+                     (not (short-claimed? (:opts app) "v"))
+                     (not command-short-v?))
+                (version-available app)
+
+                (or (= "--help" token) (= "-h" token))
+                (command-help-result app (:name command))
+
+                (= :error (:status parsed))
                 parsed
+
+                :else
                 (recur (:tokens parsed) command (:state parsed))))
 
               :else
@@ -479,6 +530,58 @@
              :command nil
              :text (root-help app)}))))))
 
+(defn run-result
+  [app argv]
+  (let [result (parse app argv)]
+    (if (= :ok (:status result))
+      (assoc result :result ((:run (:command result)) (:context result)))
+      result)))
+
+(defn- script-path?
+  [s]
+  (and (string? s)
+       (or (str/ends-with? s ".lg")
+           (str/ends-with? s ".cljc"))))
+
+(defn- current-argv
+  []
+  #?(:lg
+     (let [args os/args]
+       (if (script-path? (second args))
+         (vec (drop 2 args))
+         (vec (rest args))))
+     :default
+     (vec *command-line-args*)))
+
+(defn- write-out!
+  [s]
+  #?(:lg (write! *out* s)
+     :default (print s)))
+
+(defn- write-err!
+  [s]
+  #?(:lg (write! *err* s)
+     :default (binding [*out* *err*] (print s))))
+
+(defn- exit!
+  [code]
+  #?(:lg (os/exit code)
+     :default (System/exit code)))
+
 (defn run!
   [app]
-  (parse app []))
+  (let [result (run-result app (current-argv))]
+    (case (:status result)
+      :ok (:result result)
+      :help (do
+              (write-out! (str (:text result) "\n"))
+              (exit! 0))
+      :version (do
+                 (write-out! (str (:text result) "\n"))
+                 (exit! 0))
+      :error (do
+               (write-err! (str (:message result) "\n"))
+               (when (:text result)
+                 (write-err! (str (:text result) "\n")))
+               (exit! 1))
+      result)))

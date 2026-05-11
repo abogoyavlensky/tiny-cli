@@ -379,6 +379,79 @@
       (is (= :error (:status result)))
       (is (some? (re-find #"Option conflict" (:message result)))))))
 
+(deftest built-ins-and-runner
+  (testing "empty argv and global-options-only argv return root help"
+    (let [empty-result (cli/parse app [])
+          global-result (cli/parse app ["--verbose"])]
+      (is (= :help (:status empty-result)))
+      (is (= nil (:command empty-result)))
+      (is (some? (re-find #"Usage:" (:text empty-result))))
+      (is (= :help (:status global-result)))
+      (is (some? (re-find #"Usage:" (:text global-result))))))
+
+  (testing "help built-ins return tagged help results"
+    (let [root-help-result (cli/parse app ["help"])
+          root-long-help-result (cli/parse app ["--help"])
+          root-short-help-result (cli/parse app ["-h"])
+          command-help-result (cli/parse app ["help" "create"])
+          command-long-help-result (cli/parse app ["create" "--help"])
+          command-short-help-result (cli/parse app ["create" "-h"])
+          unknown-help-result (cli/parse app ["help" "missing"])]
+      (is (= :help (:status root-help-result)))
+      (is (= :help (:status root-long-help-result)))
+      (is (= :help (:status root-short-help-result)))
+      (is (= :help (:status command-help-result)))
+      (is (= "create" (:name (:command command-help-result))))
+      (is (some? (re-find #"wtr create BRANCH" (:text command-help-result))))
+      (is (= :help (:status command-long-help-result)))
+      (is (= :help (:status command-short-help-result)))
+      (is (= :error (:status unknown-help-result)))
+      (is (some? (re-find #"Unknown command" (:message unknown-help-result))))))
+
+  (testing "version built-ins respect claimed -v"
+    (let [version-app {:name "ver"
+                       :version "9.0.0"
+                       :commands [{:name "show" :run create!}]}
+          command-v-app {:name "ver"
+                         :version "9.0.0"
+                         :commands [{:name "show"
+                                     :opts [{:key :verbose?
+                                             :short "v"
+                                             :long "verbose"}]
+                                     :run create!}]}
+          no-version-app {:name "ver"
+                          :commands [{:name "show" :run create!}]}
+          long-result (cli/parse version-app ["--version"])
+          short-before-result (cli/parse version-app ["-v" "show"])
+          global-claimed-result (cli/parse app ["-v" "create" "feature/login"])
+          command-claimed-result (cli/parse command-v-app ["show" "-v"])
+          short-after-result (cli/parse version-app ["show" "-v"])
+          missing-version-result (cli/parse no-version-app ["--version"])]
+      (is (= :version (:status long-result)))
+      (is (= "ver 9.0.0" (:text long-result)))
+      (is (= :version (:status short-before-result)))
+      (is (= :ok (:status global-claimed-result)))
+      (is (= {:verbose? true} (get-in global-claimed-result [:context :global])))
+      (is (= :ok (:status command-claimed-result)))
+      (is (= {:verbose? true} (get-in command-claimed-result [:context :opts])))
+      (is (= :version (:status short-after-result)))
+      (is (= :error (:status missing-version-result)))
+      (is (some? (re-find #"No version available" (:message missing-version-result))))))
+
+  (testing "run-result invokes command handler without exiting"
+    (let [called (atom nil)
+          run-app {:name "run"
+                   :commands [{:name "go"
+                               :args [{:key :value}]
+                               :run (fn [ctx]
+                                      (reset! called ctx)
+                                      :done)}]}
+          result (cli/run-result run-app ["go" "x"])]
+      (is (= :ok (:status result)))
+      (is (= :done (:result result)))
+      (is (= {:global {} :args {:value "x"} :opts {}}
+             @called)))))
+
 #?(:lg
    (do
      (run-tests)
