@@ -35,7 +35,7 @@ dev-run:
 .PHONY: test  # Run tests
 test:
 	@$(INFO) "Running tests..."
-	bash tests/run.sh
+	bash test/run.sh
 
 .PHONY: fmt  # Format code
 fmt:

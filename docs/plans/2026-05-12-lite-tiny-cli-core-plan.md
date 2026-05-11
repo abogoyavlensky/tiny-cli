@@ -125,24 +125,24 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Modify: `Makefile`
 - Modify: `src/tiny_cli/core.cljc`
 
-- [ ] **Step 1: Write failing public contract tests**
+- [x] **Step 1: Write failing public contract tests**
   Add tests requiring `[tiny-cli.core :as cli]`. Use reader-conditional requires for `test` and `os` on `:lg` and `clojure.test` on `:default`, with the test namespace aliased consistently as `test`. Add a top-level test runner form that exits nonzero on failures for each host. Cover that `root-help`, `command-help`, and `parse` exist, return strings/maps, and that an example app can produce root help, command help, and a version parse result.
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL because the public functions are not implemented.
 
-- [ ] **Step 3: Add the repo test runner**
+- [x] **Step 3: Add the repo test runner**
   Create `test/run.sh` with `set -eu`, change to repo root, and run `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`. Then, if `clojure` is available, run `clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)"`; if `bb` is available, run `bb -cp src:test -e "(require 'tiny-cli.core-test)"`. Run `chmod +x test/run.sh`. Update `Makefile` so `make test` invokes `bash test/run.sh`.
 
-- [ ] **Step 4: Implement minimal public API stubs**
+- [x] **Step 4: Implement minimal public API stubs**
   Replace the current top-level `prn` in `src/tiny_cli/core.cljc`. Define the namespace only, then minimal `root-help`, `command-help`, `parse`, and `run!` functions. Return enough deterministic data/text to satisfy only the contract tests. Avoid top-level side effects.
 
-- [ ] **Step 5: Run tests to verify pass**
+- [x] **Step 5: Run tests to verify pass**
   Run: `make test`
   Expected: PASS for the initial public contract tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git commit -m "test: add tiny-cli core test harness"`
 
 ### Task 2: Help Rendering
