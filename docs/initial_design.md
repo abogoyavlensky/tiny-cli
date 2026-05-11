@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`tiny-cli` is a small CLI helper library for `let-go`.
+`tiny-cli` is a small CLI helper library for `let-go` (also compatible with Clojure and Babashka).
 
 The goal is to let `let-go` users build simple command-line apps with minimal ceremony, good default UX, and a tiny implementation.
 
@@ -17,7 +17,7 @@ The library is intentionally not a full CLI framework. It focuses on flat comman
 - Command-specific options
 - Fixed positional command arguments
 - Generated root help and command help
-- Built-in `help`, `--help`, `-h`, and `--version`
+- Built-in `help`, `--help`, `-h`, and `--version`, `-v` options
 - Simple validation
 - Predictable handler input shape
 - No parsing/coercion magic
@@ -490,12 +490,6 @@ Short value with space:
 -b main
 ```
 
-Short value attached is optional for v1. To keep implementation simpler, this can be unsupported initially:
-
-```bash
--bmain
-```
-
 ### End of Options
 
 `--` stops option parsing.
@@ -819,16 +813,9 @@ It also avoids accidental key collisions between global options, command options
 
 Only add these when real usage proves the need:
 
-- Optional positional args
 - Variadic positional args
-- Shell completions
 - Enum/restrict validation helper
 - Built-in parse helpers outside the core spec
-- Suggestions for mistyped commands/options
-- Custom help renderer
-- Hidden commands/options
-- Default command
-- Command aliases
 
 These should not be part of v1.
 
