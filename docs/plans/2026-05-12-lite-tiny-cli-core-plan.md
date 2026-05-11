@@ -197,21 +197,21 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
-- [ ] **Step 1: Write failing command and validation tests**
+- [x] **Step 1: Write failing command and validation tests**
   Cover unknown command, too few args, too many args, fixed positional arg mapping, defaults, required option failures, successful validation, validation failure messages, malformed validation specs, missing command `:run`, missing option names, and duplicate command names.
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on command/validation assertions.
 
-- [ ] **Step 3: Implement app spec checks and final parse assembly**
+- [x] **Step 3: Implement app spec checks and final parse assembly**
   Add lightweight spec checks that return `:error` maps. Apply option defaults before required checks. Map positional tokens to declared `:args`. Run validation predicates on option and arg values. Return the final `:ok` result with the selected command spec and handler context.
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
   Run: `make test`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: validate tiny-cli commands"`
 
 ### Task 5: Built-ins And Runner

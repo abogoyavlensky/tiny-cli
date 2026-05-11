@@ -191,12 +191,190 @@
                    (concat (keys (long-index command-opts))
                            (keys (short-index command-opts)))))))
 
-(defn- build-context
-  [command state]
-  (let [arg-keys (map :key (:args command))]
-    {:global (:global state)
-     :args (into {} (map vector arg-keys (:positionals state)))
-     :opts (:opts state)}))
+(defn- duplicate-command-name
+  [commands]
+  (loop [seen #{}
+         remaining commands]
+    (when (seq remaining)
+      (let [command-name (:name (first remaining))]
+        (if (contains? seen command-name)
+          command-name
+          (recur (conj seen command-name) (rest remaining)))))))
+
+(defn- option-spellings-valid?
+  [opts]
+  (every? #(or (:short %) (:long %)) opts))
+
+(defn- first-missing-key
+  [specs]
+  (first (filter #(nil? (:key %)) specs)))
+
+(defn- first-duplicate-key
+  [specs]
+  (loop [seen #{}
+         remaining specs]
+    (when (seq remaining)
+      (let [k (:key (first remaining))]
+        (if (contains? seen k)
+          k
+          (recur (conj seen k) (rest remaining)))))))
+
+(defn- duplicate-in
+  [xs]
+  (loop [seen #{}
+         remaining xs]
+    (when (seq remaining)
+      (let [x (first remaining)]
+        (if (contains? seen x)
+          x
+          (recur (conj seen x) (rest remaining)))))))
+
+(defn- option-spellings
+  [opts]
+  (mapcat (fn [opt]
+            (concat (when (:long opt) [(str "--" (:long opt))])
+                    (when (:short opt) [(str "-" (:short opt))])))
+          opts))
+
+(defn- bad-validation?
+  [validation]
+  (or (nil? (:pred validation))
+      (not (fn? (:pred validation)))
+      (nil? (:msg validation))
+      (not (string? (:msg validation)))))
+
+(defn- first-invalid-validation
+  [specs]
+  (first (filter #(when-let [validation (:validate %)]
+                   (bad-validation? validation))
+                 specs)))
+
+(defn- command-spec-error
+  [app command]
+  (cond
+    (nil? (:name command))
+    (error-result "Command requires :name.")
+
+    (nil? (:run command))
+    (error-result (str "Missing command runner: " (:name command)))
+
+    (first-missing-key (:args command))
+    (error-result "Arg requires :key.")
+
+    (first-missing-key (:opts command))
+    (error-result "Option requires :key.")
+
+    (first-duplicate-key (:args command))
+    (error-result (str "Duplicate arg key: " (first-duplicate-key (:args command))))
+
+    (first-duplicate-key (:opts command))
+    (error-result (str "Duplicate option key: " (first-duplicate-key (:opts command))))
+
+    (not (option-spellings-valid? (:opts command)))
+    (error-result "Option requires :short or :long.")
+
+    (duplicate-in (option-spellings (:opts command)))
+    (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts command)))))
+
+    (first-invalid-validation (concat (:args command) (:opts command)))
+    (error-result "Invalid validation spec.")))
+
+(defn- first-command-spec-error
+  [app]
+  (first (keep #(command-spec-error app %) (:commands app))))
+
+(defn- first-option-conflict
+  [app]
+  (first (keep #(option-conflict (:opts app) (:opts %)) (:commands app))))
+
+(defn- app-spec-error
+  [app]
+  (cond
+    (nil? (:name app))
+    (error-result "App requires :name.")
+
+    (nil? (:commands app))
+    (error-result "App requires :commands.")
+
+    (duplicate-command-name (:commands app))
+    (error-result (str "Duplicate command: " (duplicate-command-name (:commands app))))
+
+    (first-missing-key (:opts app))
+    (error-result "Option requires :key.")
+
+    (first-duplicate-key (:opts app))
+    (error-result (str "Duplicate option key: " (first-duplicate-key (:opts app))))
+
+    (not (option-spellings-valid? (:opts app)))
+    (error-result "Option requires :short or :long.")
+
+    (duplicate-in (option-spellings (:opts app)))
+    (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts app)))))
+
+    (first-invalid-validation (:opts app))
+    (error-result "Invalid validation spec.")
+
+    (first-option-conflict app)
+    (error-result (str "Option conflict: " (first-option-conflict app)))
+
+    :else
+    (first-command-spec-error app)))
+
+(defn- apply-defaults
+  [opts parsed]
+  (reduce (fn [m opt]
+            (if (and (contains? opt :default)
+                     (not (contains? m (:key opt))))
+              (assoc m (:key opt) (:default opt))
+              m))
+          parsed
+          opts))
+
+(defn- required-option-missing
+  [opts parsed]
+  (first (filter #(and (:required? %)
+                       (not (contains? parsed (:key %))))
+                 opts)))
+
+(defn- validate-value
+  [spec value]
+  (when-let [validation (:validate spec)]
+    (when-not ((:pred validation) value)
+      (:msg validation))))
+
+(defn- validation-error
+  [specs parsed]
+  (first (keep (fn [spec]
+                 (when (contains? parsed (:key spec))
+                   (validate-value spec (get parsed (:key spec)))))
+               specs)))
+
+(defn- finalize-context
+  [app command state]
+  (let [arg-count (count (:args command))
+        provided-count (count (:positionals state))]
+    (cond
+      (< provided-count arg-count)
+      (error-result (str "Missing argument: "
+                         (key-placeholder (:key (nth (:args command) provided-count)))))
+
+      (> provided-count arg-count)
+      (error-result "Too many arguments.")
+
+      :else
+      (let [args (into {} (map vector (map :key (:args command)) (:positionals state)))
+            global (apply-defaults (:opts app) (:global state))
+            opts (apply-defaults (:opts command) (:opts state))]
+        (if-let [missing (or (required-option-missing (:opts app) global)
+                             (required-option-missing (:opts command) opts))]
+          (error-result (str "Missing required option: " (option-label missing)))
+          (if-let [message (or (validation-error (:args command) args)
+                               (validation-error (:opts app) global)
+                               (validation-error (:opts command) opts))]
+            (error-result message)
+            {:global global
+             :args args
+             :opts opts}))))))
 
 (defn root-help
   [app]
@@ -243,15 +421,17 @@
 
 (defn parse
   [app argv]
-  (let [global-longs (target-index :global (:opts app) long-index)
-        global-shorts (target-index :global (:opts app) short-index)]
-    (loop [tokens (vec argv)
-           command nil
-           state {:global {} :opts {} :positionals []}]
-      (if (seq tokens)
-        (let [token (first tokens)
-              more (vec (rest tokens))]
-          (cond
+  (if-let [spec-error (app-spec-error app)]
+    spec-error
+    (let [global-longs (target-index :global (:opts app) long-index)
+          global-shorts (target-index :global (:opts app) short-index)]
+      (loop [tokens (vec argv)
+             command nil
+             state {:global {} :opts {} :positionals []}]
+        (if (seq tokens)
+          (let [token (first tokens)
+                more (vec (rest tokens))]
+            (cond
             (= "--version" token)
             {:status :version
              :text (str (:name app) " " (:version app))}
@@ -271,7 +451,9 @@
             (if-let [selected (command-by-name app token)]
               (if-let [conflict (option-conflict (:opts app) (:opts selected))]
                 (error-result (str "Option conflict: " conflict))
-                (recur more selected state))
+                (if-let [spec-error (command-spec-error app selected)]
+                  spec-error
+                  (recur more selected state)))
               (error-result (str "Unknown command: " token)))
 
             (option-token? token)
@@ -284,15 +466,18 @@
                 parsed
                 (recur (:tokens parsed) command (:state parsed))))
 
-            :else
-            (recur more command (assoc state :positionals (conj (:positionals state) token)))))
-        (if command
-          {:status :ok
-           :command command
-           :context (build-context command state)}
-          {:status :help
-           :command nil
-           :text (root-help app)})))))
+              :else
+              (recur more command (assoc state :positionals (conj (:positionals state) token)))))
+          (if command
+            (let [context (finalize-context app command state)]
+              (if (= :error (:status context))
+                context
+                {:status :ok
+                 :command command
+                 :context context}))
+            {:status :help
+             :command nil
+             :text (root-help app)}))))))
 
 (defn run!
   [app]

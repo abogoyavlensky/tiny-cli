@@ -171,6 +171,214 @@
       (is (= {:value "--not-an-option"}
              (get-in result [:context :args]))))))
 
+(defn non-blank?
+  [s]
+  (not= "" s))
+
+(deftest command-args-defaults-and-validation
+  (testing "unknown command is an error"
+    (let [result (cli/parse app ["missing"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Unknown command" (:message result))))))
+
+  (testing "too few positional args is an error"
+    (let [result (cli/parse app ["create"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing argument" (:message result))))))
+
+  (testing "too many positional args is an error"
+    (let [result (cli/parse app ["create" "one" "two"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Too many arguments" (:message result))))))
+
+  (testing "option defaults are applied"
+    (let [result (cli/parse app ["create" "feature/login"])]
+      (is (= :ok (:status result)))
+      (is (= {:base "master"} (get-in result [:context :opts])))))
+
+  (testing "required options must be provided"
+    (let [token-app {:name "api"
+                     :commands [{:name "call"
+                                 :args [{:key :path}]
+                                 :opts [{:key :token
+                                         :long "token"
+                                         :value? true
+                                         :required? true}]
+                                 :run create!}]}
+          result (cli/parse token-app ["call" "/v1"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing required option" (:message result))))))
+
+  (testing "validation passes and fails with supplied message"
+    (let [valid-app {:name "check"
+                     :commands [{:name "branch"
+                                 :args [{:key :name
+                                         :validate {:pred non-blank?
+                                                    :msg "NAME is required."}}]
+                                 :opts [{:key :base
+                                         :long "base"
+                                         :value? true
+                                         :validate {:pred non-blank?
+                                                    :msg "BASE is required."}}]
+                                 :run create!}]}
+          ok (cli/parse valid-app ["branch" "feature" "--base" "main"])
+          bad-arg (cli/parse valid-app ["branch" "" "--base" "main"])
+          bad-opt (cli/parse valid-app ["branch" "feature" "--base" ""])]
+      (is (= :ok (:status ok)))
+      (is (= :error (:status bad-arg)))
+      (is (= "NAME is required." (:message bad-arg)))
+      (is (= :error (:status bad-opt)))
+      (is (= "BASE is required." (:message bad-opt)))))
+
+  (testing "malformed validation spec is an error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :args [{:key :name
+                                       :validate {:msg "Missing predicate."}}]
+                               :run create!}]}
+          result (cli/parse bad-app ["go" "x"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Invalid validation" (:message result))))))
+
+  (testing "missing command run is a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"}]}
+          result (cli/parse bad-app ["go"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing command runner" (:message result))))))
+
+  (testing "missing option spelling is a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :opts [{:key :force?}]
+                               :run create!}]}
+          result (cli/parse bad-app ["go"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Option requires" (:message result))))))
+
+  (testing "missing arg or option key is a spec error"
+    (let [bad-arg-app {:name "bad"
+                       :commands [{:name "go"
+                                   :args [{}]
+                                   :run create!}]}
+          bad-opt-app {:name "bad"
+                       :commands [{:name "go"
+                                   :opts [{:long "force"}]
+                                   :run create!}]}
+          bad-arg (cli/parse bad-arg-app ["go" "x"])
+          bad-opt (cli/parse bad-opt-app ["go" "--force"])]
+      (is (= :error (:status bad-arg)))
+      (is (some? (re-find #"Arg requires :key" (:message bad-arg))))
+      (is (= :error (:status bad-opt)))
+      (is (some? (re-find #"Option requires :key" (:message bad-opt))))))
+
+  (testing "duplicate arg keys and option keys are spec errors"
+    (let [bad-args-app {:name "bad"
+                        :commands [{:name "go"
+                                    :args [{:key :x} {:key :x}]
+                                    :run create!}]}
+          bad-opts-app {:name "bad"
+                        :commands [{:name "go"
+                                    :opts [{:key :force?
+                                            :long "force"}
+                                           {:key :force?
+                                            :long "really-force"}]
+                                    :run create!}]}
+          bad-args (cli/parse bad-args-app ["go" "a" "b"])
+          bad-opts (cli/parse bad-opts-app ["go" "--force"])]
+      (is (= :error (:status bad-args)))
+      (is (some? (re-find #"Duplicate arg key" (:message bad-args))))
+      (is (= :error (:status bad-opts)))
+      (is (some? (re-find #"Duplicate option key" (:message bad-opts))))))
+
+  (testing "duplicate option spelling in one scope is a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :opts [{:key :first?
+                                       :long "force"}
+                                      {:key :second?
+                                       :long "force"}]
+                               :run create!}]}
+          result (cli/parse bad-app ["go" "--force"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Duplicate option spelling" (:message result))))))
+
+  (testing "duplicate command names are a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go" :run create!}
+                              {:name "go" :run create!}]}
+          result (cli/parse bad-app ["go"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Duplicate command" (:message result))))))
+
+  (testing "app-level spec errors are reported before dispatch"
+    (let [duplicate-commands {:name "bad"
+                              :commands [{:name "go" :run create!}
+                                         {:name "go" :run create!}]}
+          duplicate-globals {:name "bad"
+                             :opts [{:key :one?
+                                     :long "flag"}
+                                    {:key :two?
+                                     :long "flag"}]
+                             :commands [{:name "go" :run create!}]}
+          duplicate-commands-result (cli/parse duplicate-commands [])
+          duplicate-globals-result (cli/parse duplicate-globals ["--flag"])]
+      (is (= :error (:status duplicate-commands-result)))
+      (is (some? (re-find #"Duplicate command" (:message duplicate-commands-result))))
+      (is (= :error (:status duplicate-globals-result)))
+      (is (some? (re-find #"Duplicate option spelling" (:message duplicate-globals-result))))))
+
+  (testing "app required fields are spec errors"
+    (let [missing-name {:commands [{:name "go" :run create!}]}
+          missing-commands {:name "bad"}
+          missing-name-result (cli/parse missing-name [])
+          missing-commands-result (cli/parse missing-commands [])]
+      (is (= :error (:status missing-name-result)))
+      (is (some? (re-find #"App requires :name" (:message missing-name-result))))
+      (is (= :error (:status missing-commands-result)))
+      (is (some? (re-find #"App requires :commands" (:message missing-commands-result))))))
+
+  (testing "command spec errors are reported before root help"
+    (let [missing-run {:name "bad"
+                       :commands [{:name "go"}]}
+          missing-name {:name "bad"
+                        :commands [{:run create!}]}
+          duplicate-args {:name "bad"
+                          :commands [{:name "go"
+                                      :args [{:key :x} {:key :x}]
+                                      :run create!}]}
+          duplicate-spellings {:name "bad"
+                               :commands [{:name "go"
+                                           :opts [{:key :one?
+                                                   :long "flag"}
+                                                  {:key :two?
+                                                   :long "flag"}]
+                                           :run create!}]}
+          missing-run-result (cli/parse missing-run [])
+          missing-name-result (cli/parse missing-name [])
+          duplicate-args-result (cli/parse duplicate-args [])
+          duplicate-spellings-result (cli/parse duplicate-spellings [])]
+      (is (= :error (:status missing-run-result)))
+      (is (some? (re-find #"Missing command runner" (:message missing-run-result))))
+      (is (= :error (:status missing-name-result)))
+      (is (some? (re-find #"Command requires :name" (:message missing-name-result))))
+      (is (= :error (:status duplicate-args-result)))
+      (is (some? (re-find #"Duplicate arg key" (:message duplicate-args-result))))
+      (is (= :error (:status duplicate-spellings-result)))
+      (is (some? (re-find #"Duplicate option spelling" (:message duplicate-spellings-result))))))
+
+  (testing "global command option conflicts are reported before root help"
+    (let [conflict-app {:name "bad"
+                        :opts [{:key :global?
+                                :long "force"}]
+                        :commands [{:name "go"
+                                    :opts [{:key :local?
+                                            :long "force"}]
+                                    :run create!}]}
+          result (cli/parse conflict-app [])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Option conflict" (:message result)))))))
+
 #?(:lg
    (do
      (run-tests)
