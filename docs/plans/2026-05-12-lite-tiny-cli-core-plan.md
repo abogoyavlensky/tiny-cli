@@ -6,6 +6,8 @@
 
 **Tech Stack:** let-go, lgx, Clojure-compatible `.cljc`, reader-conditional test namespace, shell test runner.
 
+**Status:** Completed.
+
 ---
 
 ## Design
@@ -246,35 +248,35 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Modify: `README.md` if needed
 - Modify: `docs/initial_design.md` only if the implementation intentionally clarifies an ambiguity
 
-- [ ] **Step 1: Run all configured target tests**
+- [x] **Step 1: Run all configured target tests**
   Run: `make test`
   Expected: PASS. The runner must fail on let-go test failures and on Clojure/Babashka test failures when those executables are installed.
 
-- [ ] **Step 2: Run Clojure tests directly if available**
+- [x] **Step 2: Run Clojure tests directly if available**
   Run: `command -v clojure >/dev/null && clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)" || true`
   Expected: tests pass when `clojure` is installed; otherwise the command skips.
 
-- [ ] **Step 3: Run Babashka tests directly if available**
+- [x] **Step 3: Run Babashka tests directly if available**
   Run: `command -v bb >/dev/null && bb -cp src:test -e "(require 'tiny-cli.core-test)" || true`
   Expected: tests pass when `bb` is installed; otherwise the command skips.
 
-- [ ] **Step 4: Build let-go bundle smoke**
+- [x] **Step 4: Build let-go bundle smoke**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b bin/tiny-cli src/tiny_cli/core.cljc`
   Expected: bundle succeeds without printing from compile-time top-level forms.
 
-- [ ] **Step 5: Update docs if needed**
+- [x] **Step 5: Update docs if needed**
   If the implemented public API differs from `README.md` or `docs/initial_design.md`, update docs to match. Do not add unrelated roadmap items.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git commit -m "docs: document tiny-cli core api"`
 
 ## Verification Checklist
 
-- [ ] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
-- [ ] `make test`
-- [ ] Optional Clojure test run when `clojure` is installed
-- [ ] Optional Babashka test run when `bb` is installed
-- [ ] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b bin/tiny-cli src/tiny_cli/core.cljc`
+- [x] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
+- [x] `make test`
+- [x] Optional Clojure test run when `clojure` is installed
+- [x] Optional Babashka test run when `bb` is installed
+- [x] `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b bin/tiny-cli src/tiny_cli/core.cljc`
 
 ## Notes For Implementation
 
@@ -284,3 +286,18 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Avoid top-level side effects in `.cljc`; let-go AOT compilation evaluates top-level forms.
 - Prefer plain data and small helpers over protocols or macros.
 - Keep tests in `test/tiny_cli/core_test.cljc`; Clojure and Babashka should run the same test namespace rather than separate test suites for v1.
+
+## Completion Summary
+
+Implemented `tiny-cli.core` as a single `.cljc` namespace with:
+
+- deterministic `root-help` and `command-help`
+- pure `parse` results for `:ok`, `:help`, `:version`, and `:error`
+- option parsing for long, short, combined short boolean, value, and `--` forms
+- command/arg/default/required-option/validation handling
+- app and command spec validation
+- built-in help/version behavior and `-v` precedence
+- `run-result` for test/debug handler dispatch
+- host-specific `run!` for Let-Go and default Clojure/Babashka branches
+
+Added shared `.cljc` tests in `test/tiny_cli/core_test.cljc` and a `test/run.sh` runner. `make test` passes for the Let-Go target. Direct Clojure and Babashka commands were attempted, but the local `mise` shims have no configured versions, so those optional target runs were skipped in this environment. The Let-Go bundle smoke check passes.

@@ -583,5 +583,5 @@
                (write-err! (str (:message result) "\n"))
                (when (:text result)
                  (write-err! (str (:text result) "\n")))
-               (exit! 1))
+               (exit! 2))
       result)))

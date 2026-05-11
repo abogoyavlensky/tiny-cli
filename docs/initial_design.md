@@ -39,7 +39,7 @@ The library is intentionally not a full CLI framework. It focuses on flat comman
 
 ```clojure
 (ns wtr.main
-  (:require [tiny-cli :as cli]))
+  (:require [tiny-cli.core :as cli]))
 
 (defn valid-branch? [s]
   (and s (not= "" s)))
@@ -647,37 +647,53 @@ If handler returns nil, exit code is 0.
 
 ## Public API
 
-Minimal v1 public API:
+Public v1 API:
 
 ```clojure
 (cli/run! app)
-```
-
-Optional pure parsing API for tests and advanced use:
-
-```clojure
 (cli/parse app argv)
+(cli/root-help app)
+(cli/command-help app "create")
+(cli/run-result app argv)
 ```
 
-Possible result:
+`run!` reads process args, prints help/version/errors, invokes handlers, and exits for built-ins and parse errors.
+
+`parse`, `root-help`, and `command-help` are pure helpers for tests, debug, and advanced integrations. `run-result` parses argv and invokes the selected handler for `:ok` results without exiting, which makes handler dispatch easy to test.
+
+`parse` receives argv without the executable name or entry script path.
+
+OK result:
 
 ```clojure
-{:ok? true
- :command "create"
+{:status :ok
+ :command command-spec
  :context {:global {:verbose? true}
            :args {:branch "feature/login"}
            :opts {:base "main"}}}
 ```
 
+Help result:
+
+```clojure
+{:status :help
+ :command nil-or-command-spec
+ :text "..."}
+```
+
+Version result:
+
+```clojure
+{:status :version
+ :text "wtr 0.1.0"}
+```
+
 Error result:
 
 ```clojure
-{:ok? false
- :error {:type :unknown-option
-         :message "unknown option: --bas"}}
+{:status :error
+ :message "Unknown option: --bas"}
 ```
-
-The library can keep `parse` internal for v1 if minimal public API is preferred.
 
 ## Internal Implementation Outline
 
@@ -818,4 +834,3 @@ Only add these when real usage proves the need:
 - Built-in parse helpers outside the core spec
 
 These should not be part of v1.
-
