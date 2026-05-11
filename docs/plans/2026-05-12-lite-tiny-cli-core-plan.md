@@ -151,21 +151,21 @@ The test file should call `run-tests` at top level so requiring the namespace ru
 - Modify: `test/tiny_cli/core_test.cljc`
 - Modify: `src/tiny_cli/core.cljc`
 
-- [ ] **Step 1: Write failing help rendering tests**
+- [x] **Step 1: Write failing help rendering tests**
   Cover root help for app name, doc, usage, global options, command list, and built-ins. Cover command help for usage, command doc, positional arg placeholders, command options, global options, defaults, and command-help built-ins. Assert command help does not list version.
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
   Run: `LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc`
   Expected: FAIL on missing or incomplete help text.
 
-- [ ] **Step 3: Implement deterministic help helpers**
+- [x] **Step 3: Implement deterministic help helpers**
   Add private helpers for command lookup, option placeholder derivation, usage strings, option formatting, and line joining. Keep formatting simple and stable; tests should assert meaningful substrings and exact small strings where useful, not fragile whole-screen spacing.
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
   Run: `make test`
   Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: render tiny-cli help text"`
 
 ### Task 3: Option Parsing
