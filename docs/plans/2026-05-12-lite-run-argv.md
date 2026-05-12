@@ -1,5 +1,7 @@
 # Make `run!` Accept Explicit Args
 
+**Status:** Completed.
+
 ## Goal
 
 Change `tiny-cli.core/run!` to require an explicit argv vector:
@@ -17,7 +19,10 @@ Change `tiny-cli.core/run!` to require an explicit argv vector:
 Examples:
 
 ```clojure
-;; let-go direct script or bundle, caller decides what to drop
+;; let-go interpreted script
+(cli/run! app (vec (drop 2 os/args)))
+
+;; let-go bundled binary
 (cli/run! app (vec (rest os/args)))
 
 ;; Clojure and Babashka
@@ -75,3 +80,9 @@ Expected:
 ## Notes
 
 This is a breaking API change. That is acceptable for the current v1 work because the library has not shipped a stable release yet.
+
+## Completion Summary
+
+Implemented the breaking `run!` API change so callers must pass normalized CLI arguments with `(cli/run! app argv)`. Removed library-owned process argv discovery, including script path detection, while keeping host-specific output and exit helpers for `run!` result interpretation.
+
+Updated tests and docs to cover the explicit argv contract. Verification passed with `make test` across Let-Go, Clojure, and Babashka, plus the Let-Go bundle smoke command.

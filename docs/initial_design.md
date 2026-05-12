@@ -84,7 +84,8 @@ The library is intentionally not a full CLI framework. It focuses on flat comman
      :doc "List worktrees."
      :run list!}]})
 
-(cli/run! app)
+(defn main [argv]
+  (cli/run! app argv))
 ```
 
 ## User CLI Examples
@@ -650,18 +651,18 @@ If handler returns nil, exit code is 0.
 Public v1 API:
 
 ```clojure
-(cli/run! app)
+(cli/run! app argv)
 (cli/parse app argv)
 (cli/root-help app)
 (cli/command-help app "create")
 (cli/run-result app argv)
 ```
 
-`run!` reads process args, prints help/version/errors, invokes handlers, and exits for built-ins and parse errors.
+`run!` accepts normalized CLI args, prints help/version/errors, invokes handlers, and exits for built-ins and parse errors.
 
 `parse`, `root-help`, and `command-help` are pure helpers for tests, debug, and advanced integrations. `run-result` parses argv and invokes the selected handler for `:ok` results without exiting, which makes handler dispatch easy to test.
 
-`parse` receives argv without the executable name or entry script path.
+`run!`, `parse`, and `run-result` receive argv without the executable name or entry script path. Callers own process argv normalization.
 
 OK result:
 

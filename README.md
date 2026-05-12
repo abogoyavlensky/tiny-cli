@@ -13,11 +13,24 @@ Require the core namespace:
 
 Public functions:
 
-- `(cli/run! app)` reads process args, prints help/version/errors, calls handlers, and exits for built-ins and parse errors.
+- `(cli/run! app argv)` interprets CLI args, prints help/version/errors, calls handlers, and exits for built-ins and parse errors.
 - `(cli/parse app argv)` parses an argv vector without the executable/script path and returns `:ok`, `:help`, `:version`, or `:error`.
 - `(cli/root-help app)` returns root help text.
 - `(cli/command-help app "command")` returns command help text.
 - `(cli/run-result app argv)` is a pure-ish runner for tests and debug: it parses argv and invokes the selected handler for `:ok` results without exiting.
+
+`argv` should contain CLI tokens only. Normalize process args at the application edge:
+
+```clojure
+;; let-go interpreted script
+(cli/run! app (vec (drop 2 os/args)))
+
+;; let-go bundled binary
+(cli/run! app (vec (rest os/args)))
+
+;; Clojure / Babashka
+(cli/run! app (vec *command-line-args*))
+```
 
 Handlers receive:
 

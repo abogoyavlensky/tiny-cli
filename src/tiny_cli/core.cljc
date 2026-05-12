@@ -538,22 +538,6 @@
       (assoc result :result ((:run (:command result)) (:context result)))
       result)))
 
-(defn- script-path?
-  [s]
-  (and (string? s)
-       (or (str/ends-with? s ".lg")
-           (str/ends-with? s ".cljc"))))
-
-(defn- current-argv
-  []
-  #?(:lg
-     (let [args os/args]
-       (if (script-path? (second args))
-         (vec (drop 2 args))
-         (vec (rest args))))
-     :default
-     (vec *command-line-args*)))
-
 (defn- write-out!
   [s]
   #?(:lg (write! *out* s)
@@ -570,8 +554,8 @@
      :default (System/exit code)))
 
 (defn run!
-  [app]
-  (let [result (run-result app (current-argv))]
+  [app argv]
+  (let [result (run-result app argv)]
     (case (:status result)
       :ok (:result result)
       :help (do

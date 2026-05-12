@@ -450,6 +450,19 @@
       (is (= :ok (:status result)))
       (is (= :done (:result result)))
       (is (= {:global {} :args {:value "x"} :opts {}}
+             @called))))
+
+  (testing "run! accepts normalized CLI args"
+    (let [called (atom nil)
+          run-app {:name "run"
+                   :commands [{:name "go"
+                               :args [{:key :value}]
+                               :run (fn [ctx]
+                                      (reset! called ctx)
+                                      :done)}]}
+          result (cli/run! run-app ["go" "x"])]
+      (is (= :done result))
+      (is (= {:global {} :args {:value "x"} :opts {}}
              @called)))))
 
 #?(:lg
