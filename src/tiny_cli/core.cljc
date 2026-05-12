@@ -392,9 +392,7 @@
 (defn root-help
   [app]
   (join-lines
-    (concat [(:name app)
-             ""
-             (:doc app)
+    (concat [(str (:name app) " - " (:doc app))
              ""
              "Usage:"
              (str "  " (:name app) " [options] <command> [args]")
@@ -411,9 +409,7 @@
   [app command-name]
   (if-let [command (command-by-name app command-name)]
     (join-lines
-      (concat [(command-usage app command)
-               ""
-               (:doc command)
+      (concat [(str (command-usage app command) " - " (:doc command))
                ""
                "Usage:"
                (str "  " (command-usage app command))
