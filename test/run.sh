@@ -12,7 +12,7 @@ LGX_LG=/Users/andrew/Projects/let-go/lg lgx run test/tiny_cli/core_test.cljc
 if command -v clojure >/dev/null && clojure -Sdescribe >/dev/null 2>&1; then
   echo
   echo "==> clojure"
-  clojure -Sdeps '{:paths ["src" "test"]}' -e "(require 'tiny-cli.core-test)"
+  clojure -M -e "(require 'tiny-cli.core-test)"
 else
   echo
   echo "==> clojure skipped"

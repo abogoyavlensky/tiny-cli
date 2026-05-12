@@ -4,6 +4,7 @@ lg = "1.7.2"
 lgx = "0.1.0-alpha2"
 clojure = "1.12.4.1629"
 babashka = "1.12.218"
+java = "temurin-21.0.2+13.0.LTS"
 
 [tool_alias]
 lg = "github:nooga/let-go"
