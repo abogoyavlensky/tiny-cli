@@ -26,7 +26,7 @@ executable name or script path. Normalize process args before calling
 
 ```clojure
 ; let-go interpreted script
-(cli/run! app (vec (drop 2 os/args)))
+(cli/run! app (vec (drop 4 os/args)))
 
 ; let-go bundled binary
 (cli/run! app (vec (rest os/args)))
@@ -39,7 +39,7 @@ executable name or script path. Normalize process args before calling
 handlers, and exits for built-ins and parse errors. It does not catch handler
 exceptions.
 
-## Minimal Let-Go Tool
+## Minimal let-go Tool
 
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
