@@ -69,15 +69,15 @@
 
 (defn- root-built-ins
   [app]
-  (concat ["  -h, --help  Show help."
-           "  help [command]  Show help."]
+  (concat ["  help [command]  Show help."
+           "  -h, --help  Show help."]
           (when (:version app)
             ["  --version  Print version."])))
 
 (defn- command-built-ins
   [command-name]
-  [(str "  -h, --help  Show help for " command-name ".")
-   (str "  help " command-name "  Show help for " command-name ".")])
+  [(str "  help " command-name "  Show help for " command-name ".")
+   (str "  -h, --help  Show help for " command-name ".")])
 
 (defn- error-result
   [message]
@@ -405,7 +405,6 @@
             (map format-option (:opts app))
             ["" "Commands:"]
             (map format-command-row (:commands app))
-            ["" "Built-ins:"]
             (root-built-ins app))))
 
 (defn command-help
@@ -428,7 +427,6 @@
               (when (seq (:opts app))
                 (concat ["" "Global Options:"]
                         (map format-option (:opts app))))
-              ["" "Built-ins:"]
               (command-built-ins (:name command))))
     (str "Unknown command: " command-name)))
 

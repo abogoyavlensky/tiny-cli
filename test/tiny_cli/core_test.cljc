@@ -53,7 +53,6 @@
       (is (some? (re-find #"-v, --verbose" text)))
       (is (some? (re-find #"Commands:" text)))
       (is (some? (re-find #"create" text)))
-      (is (some? (re-find #"Built-ins:" text)))
       (is (some? (re-find #"--version" text)))))
 
   (testing "command help renders command sections"
@@ -67,7 +66,6 @@
       (is (some? (re-find #"Default: master" text)))
       (is (some? (re-find #"Global Options:" text)))
       (is (some? (re-find #"-v, --verbose" text)))
-      (is (some? (re-find #"Built-ins:" text)))
       (is (nil? (re-find #"--version" text))))))
 
 (def bool-app
