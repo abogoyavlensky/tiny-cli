@@ -1,6 +1,6 @@
 # tiny-cli
 
-A zero-dependency, tiny CLI lib for Clojure/Babashka/let-go.
+A zero-dependency CLI lib for let-go/Clojure/Babashka.
 
 ## API
 
