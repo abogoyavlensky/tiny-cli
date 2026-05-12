@@ -1,8 +1,9 @@
 # tiny-cli
 
-A zero-dependency CLI library for let-go, Clojure, and Babashka. It is small on
-purpose: flat commands, Unix-style options, generated help, version output, and
-simple validation.
+A zero-dependency CLI library for [let-go](https://github.com/nooga/let-go), 
+[Clojure](https://clojure.org/index), and [Babashka](https://github.com/babashka/babashka). 
+It is small on purpose: flat commands, Unix-style options, generated help, 
+version output, and simple validation.
 
 ## Getting Started
 
@@ -43,6 +44,8 @@ exceptions.
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
 
+*deploy.lg*
+
 ```clojure
 (ns deploy
   (:require [os]
@@ -82,13 +85,19 @@ command, one required positional arg, one command option, and one global flag.
                        :doc "Target environment."}]
                :run deploy-service!}]})
 
-(cli/run! app (vec (drop 2 os/args)))
+(defn- cli-argv [argv]
+  "Return args after the script path while developing, or CLI args in bundled mode."
+  (let [tail (drop-while #(not (str/ends-with? % ".lg")) argv)]
+    (or (seq (rest tail)) (rest argv))))
+
+(when-not *compiling-aot* 
+  (cli/run! app (cli-argv os/args)))
 ```
 
 Example:
 
 ```bash
-lgx run deploy.cljc --dry-run service api --env prod
+lgx run deploy.lg --dry-run service api --env prod
 ```
 
 Output:
