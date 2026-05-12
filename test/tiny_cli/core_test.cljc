@@ -1,8 +1,8 @@
 (ns tiny-cli.core-test
-  (:require [tiny-cli.core :as cli]
+  (:require #?(:lg [os])
             #?(:lg [test :as test :refer [deftest is testing run-tests]]
                :default [clojure.test :as test :refer [deftest is testing run-tests]])
-            #?(:lg [os])))
+            [tiny-cli.core :as cli]))
 
 (defn create! [_ctx] :created)
 
@@ -117,7 +117,8 @@
   (testing "parses combined short booleans"
     (let [result (cli/parse bool-app ["ship" "-fd" "box-1"])]
       (is (= :ok (:status result)))
-      (is (= {:force? true :dry-run? true}
+      (is (= {:force? true
+              :dry-run? true}
              (get-in result [:context :opts])))))
 
   (testing "parses mixed global and command short booleans after command"
@@ -305,22 +306,27 @@
 
   (testing "duplicate command names are a spec error"
     (let [bad-app {:name "bad"
-                   :commands [{:name "go" :run create!}
-                              {:name "go" :run create!}]}
+                   :commands [{:name "go"
+                               :run create!}
+                              {:name "go"
+                               :run create!}]}
           result (cli/parse bad-app ["go"])]
       (is (= :error (:status result)))
       (is (some? (re-find #"Duplicate command" (:message result))))))
 
   (testing "app-level spec errors are reported before dispatch"
     (let [duplicate-commands {:name "bad"
-                              :commands [{:name "go" :run create!}
-                                         {:name "go" :run create!}]}
+                              :commands [{:name "go"
+                                          :run create!}
+                                         {:name "go"
+                                          :run create!}]}
           duplicate-globals {:name "bad"
                              :opts [{:key :one?
                                      :long "flag"}
                                     {:key :two?
                                      :long "flag"}]
-                             :commands [{:name "go" :run create!}]}
+                             :commands [{:name "go"
+                                         :run create!}]}
           duplicate-commands-result (cli/parse duplicate-commands [])
           duplicate-globals-result (cli/parse duplicate-globals ["--flag"])]
       (is (= :error (:status duplicate-commands-result)))
@@ -329,7 +335,8 @@
       (is (some? (re-find #"Duplicate option spelling" (:message duplicate-globals-result))))))
 
   (testing "app required fields are spec errors"
-    (let [missing-name {:commands [{:name "go" :run create!}]}
+    (let [missing-name {:commands [{:name "go"
+                                    :run create!}]}
           missing-commands {:name "bad"}
           missing-name-result (cli/parse missing-name [])
           missing-commands-result (cli/parse missing-commands [])]
@@ -411,7 +418,8 @@
   (testing "version built-ins respect claimed -v"
     (let [version-app {:name "ver"
                        :version "9.0.0"
-                       :commands [{:name "show" :run create!}]}
+                       :commands [{:name "show"
+                                   :run create!}]}
           command-v-app {:name "ver"
                          :version "9.0.0"
                          :commands [{:name "show"
@@ -420,7 +428,8 @@
                                              :long "verbose"}]
                                      :run create!}]}
           no-version-app {:name "ver"
-                          :commands [{:name "show" :run create!}]}
+                          :commands [{:name "show"
+                                      :run create!}]}
           long-result (cli/parse version-app ["--version"])
           short-before-result (cli/parse version-app ["-v" "show"])
           global-claimed-result (cli/parse app ["-v" "create" "feature/login"])
@@ -449,7 +458,9 @@
           result (cli/run-result run-app ["go" "x"])]
       (is (= :ok (:status result)))
       (is (= :done (:result result)))
-      (is (= {:global {} :args {:value "x"} :opts {}}
+      (is (= {:global {}
+              :args {:value "x"}
+              :opts {}}
              @called))))
 
   (testing "run! accepts normalized CLI args"
@@ -462,7 +473,9 @@
                                       :done)}]}
           result (cli/run! run-app ["go" "x"])]
       (is (= :done result))
-      (is (= {:global {} :args {:value "x"} :opts {}}
+      (is (= {:global {}
+              :args {:value "x"}
+              :opts {}}
              @called)))))
 
 #?(:lg

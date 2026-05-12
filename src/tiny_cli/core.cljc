@@ -1,9 +1,8 @@
 (ns tiny-cli.core
   #?(:clj (:refer-clojure :exclude [run!]))
-  (:require #?(:lg [string :as str]
-               :default [clojure.string :as str])
-            #?(:lg [os])))
-
+  (:require #?(:lg [os])
+            #?(:lg [string :as str]
+               :default [clojure.string :as str])))
 
 (defn- join-lines
   [lines]
@@ -182,7 +181,8 @@
 (defn- target-index
   [target opts index-fn]
   (into {} (map (fn [[spelling opt]]
-                  [spelling {:target target :opt opt}])
+                  [spelling {:target target
+                             :opt opt}])
                 (index-fn opts))))
 
 (defn- option-conflict
@@ -255,7 +255,7 @@
 (defn- first-invalid-validation
   [specs]
   (first (filter #(when-let [validation (:validate %)]
-                   (bad-validation? validation))
+                    (bad-validation? validation))
                  specs)))
 
 (defn- command-spec-error
@@ -448,75 +448,77 @@
           global-shorts (target-index :global (:opts app) short-index)]
       (loop [tokens (vec argv)
              command nil
-             state {:global {} :opts {} :positionals []}]
+             state {:global {}
+                    :opts {}
+                    :positionals []}]
         (if (seq tokens)
           (let [token (first tokens)
                 more (vec (rest tokens))]
             (cond
-            (= "--version" token)
-            (version-available app)
+              (= "--version" token)
+              (version-available app)
 
-            (and (= "-v" token)
-                 (nil? command)
-                 (not (short-claimed? (:opts app) "v")))
-            (version-available app)
+              (and (= "-v" token)
+                   (nil? command)
+                   (not (short-claimed? (:opts app) "v")))
+              (version-available app)
 
-            (and (nil? command)
-                 (= "help" token))
-            (if (seq more)
-              (command-help-result app (first more))
+              (and (nil? command)
+                   (= "help" token))
+              (if (seq more)
+                (command-help-result app (first more))
+                {:status :help
+                 :command nil
+                 :text (root-help app)})
+
+              (and (nil? command)
+                   (or (= "--help" token)
+                       (= "-h" token)))
               {:status :help
                :command nil
-               :text (root-help app)})
+               :text (root-help app)}
 
-            (and (nil? command)
-                 (or (= "--help" token)
-                     (= "-h" token)))
-            {:status :help
-             :command nil
-             :text (root-help app)}
+              (= "--" token)
+              (if command
+                (recur [] command (assoc state :positionals (vec (concat (:positionals state) more))))
+                (error-result "Unexpected end-of-options before command."))
 
-            (= "--" token)
-            (if command
-              (recur [] command (assoc state :positionals (vec (concat (:positionals state) more))))
-              (error-result "Unexpected end-of-options before command."))
+              (and (nil? command) (option-token? token))
+              (let [parsed (parse-option-token state token more global-longs global-shorts)]
+                (if (= :error (:status parsed))
+                  parsed
+                  (recur (:tokens parsed) command (:state parsed))))
 
-            (and (nil? command) (option-token? token))
-            (let [parsed (parse-option-token state token more global-longs global-shorts)]
-              (if (= :error (:status parsed))
-                parsed
-                (recur (:tokens parsed) command (:state parsed))))
+              (nil? command)
+              (if-let [selected (command-by-name app token)]
+                (if-let [conflict (option-conflict (:opts app) (:opts selected))]
+                  (error-result (str "Option conflict: " conflict))
+                  (if-let [spec-error (command-spec-error app selected)]
+                    spec-error
+                    (recur more selected state)))
+                (error-result (str "Unknown command: " token)))
 
-            (nil? command)
-            (if-let [selected (command-by-name app token)]
-              (if-let [conflict (option-conflict (:opts app) (:opts selected))]
-                (error-result (str "Option conflict: " conflict))
-                (if-let [spec-error (command-spec-error app selected)]
-                  spec-error
-                  (recur more selected state)))
-              (error-result (str "Unknown command: " token)))
+              (option-token? token)
+              (let [all-longs (merge (target-index :global (:opts app) long-index)
+                                     (target-index :opts (:opts command) long-index))
+                    all-shorts (merge (target-index :global (:opts app) short-index)
+                                      (target-index :opts (:opts command) short-index))
+                    command-short-v? (short-claimed? (:opts command) "v")
+                    parsed (parse-option-token state token more all-longs all-shorts)]
+                (cond
+                  (and (= "-v" token)
+                       (not (short-claimed? (:opts app) "v"))
+                       (not command-short-v?))
+                  (version-available app)
 
-            (option-token? token)
-            (let [all-longs (merge (target-index :global (:opts app) long-index)
-                                   (target-index :opts (:opts command) long-index))
-                  all-shorts (merge (target-index :global (:opts app) short-index)
-                                    (target-index :opts (:opts command) short-index))
-                  command-short-v? (short-claimed? (:opts command) "v")
-                  parsed (parse-option-token state token more all-longs all-shorts)]
-              (cond
-                (and (= "-v" token)
-                     (not (short-claimed? (:opts app) "v"))
-                     (not command-short-v?))
-                (version-available app)
+                  (or (= "--help" token) (= "-h" token))
+                  (command-help-result app (:name command))
 
-                (or (= "--help" token) (= "-h" token))
-                (command-help-result app (:name command))
+                  (= :error (:status parsed))
+                  parsed
 
-                (= :error (:status parsed))
-                parsed
-
-                :else
-                (recur (:tokens parsed) command (:state parsed))))
+                  :else
+                  (recur (:tokens parsed) command (:state parsed))))
 
               :else
               (recur more command (assoc state :positionals (conj (:positionals state) token)))))

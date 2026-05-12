@@ -1,8 +1,7 @@
-{:paths ["lgx.lg" "lgx" "tests"]
- :file-pattern #re "\\.lg?$"
+{:paths ["src" "test"]
+ :file-pattern #re "\\.cljc?$"
  :parallel? true
  :sort-ns-references? true
  :remove-multiple-non-indenting-spaces? true
  :split-keypairs-over-multiple-lines? true
  :function-arguments-indentation :cursive}
- 
