@@ -1,6 +1,7 @@
 # tiny-cli
 
-A zero-dependency CLI lib for let-go/Clojure/Babashka.
+A zero-dependency CLI lib for let-go/Clojure/Babashka. It tries to be minimal and 
+straightforward with good defaults and helpful built-ins.
 
 ## API
 
