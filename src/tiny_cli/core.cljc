@@ -63,21 +63,38 @@
 (defn- command-usage
   [app command]
   (let [args (map #(key-placeholder (:key %)) (:args command))]
-    (str (:name app) " " (:name command)
-         (when (seq args)
-           (str " " (str/join " " args))))))
+    (str/join " " (filter some?
+                    [(:name app)
+                     (when (seq (:opts app))
+                      "[global options]")
+                     (:name command)
+                     (when (seq args)
+                       (str "[" (str/join " " args) "]"))
+                     (when (seq (:opts command))
+                       "[options]")]))))
 
-(defn- root-built-ins
+(defn- command-usage-min
+  [app command]
+  (let [args (map #(key-placeholder (:key %)) (:args command))]
+    (str/join " " (filter some?
+                          [(:name app)
+                           (:name command)
+                           (when (seq args)
+                             (str "[" (str/join " " args) "]"))]))))
+
+(defn- root-option-built-ins
   [app]
-  (concat ["  help [command]  Show help."
-           "  -h, --help  Show help."]
+  (concat ["  -h, --help  Show help."]
           (when (:version app)
             ["  --version  Print version."])))
 
-(defn- command-built-ins
-  [command-name]
-  [(str "  help " command-name "  Show help for " command-name ".")
-   (str "  -h, --help  Show help for " command-name ".")])
+(defn- root-command-built-ins
+  [app]
+  ["  help [command]  Show help."])
+
+(defn- command-option-built-ins
+  [app-name command-name]
+  (str "  " app-name " " command-name " -h, --help  Show help for " command-name "."))
 
 (defn- error-result
   [message]
@@ -395,25 +412,27 @@
     (concat [(str (:name app) " - " (:doc app))
              ""
              "Usage:"
-             (str "  " (:name app) " [options] <command> [args]")
+             (str "  " (:name app) " [global options] <command> [args] [options]")
              (str "  " (:name app) " help [command]")
              (str "  " (:name app) " --help")
              ""
-             "Options:"]
+             "Global Options:"]
             (map format-option (:opts app))
+            (root-option-built-ins app)
             ["" "Commands:"]
             (map format-command-row (:commands app))
-            (root-built-ins app))))
+            (root-command-built-ins app))))
 
 (defn command-help
   [app command-name]
   (if-let [command (command-by-name app command-name)]
     (join-lines
-      (concat [(str (command-usage app command) " - " (:doc command))
+      (concat [(str (command-usage-min app command) " - " (:doc command))
                ""
                "Usage:"
                (str "  " (command-usage app command))
-               (str "  " (:name app) " help " (:name command))]
+               (str "  " (:name app) " help " (:name command))
+               (command-option-built-ins (:name app) (:name command))]
               (when (seq (:args command))
                 (concat ["" "Args:"]
                         (map format-arg (:args command))))
@@ -422,8 +441,7 @@
                         (map format-option (:opts command))))
               (when (seq (:opts app))
                 (concat ["" "Global Options:"]
-                        (map format-option (:opts app))))
-              (command-built-ins (:name command))))
+                        (map format-option (:opts app))))))
     (str "Unknown command: " command-name)))
 
 (defn- command-help-result

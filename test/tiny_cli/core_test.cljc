@@ -49,7 +49,7 @@
       (is (some? (re-find #"wtr" text)))
       (is (some? (re-find #"Small git worktree helper\." text)))
       (is (some? (re-find #"Usage:" text)))
-      (is (some? (re-find #"Options:" text)))
+      (is (some? (re-find #"Global Options:" text)))
       (is (some? (re-find #"-v, --verbose" text)))
       (is (some? (re-find #"Commands:" text)))
       (is (some? (re-find #"create" text)))
