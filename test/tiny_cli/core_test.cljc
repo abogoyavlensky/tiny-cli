@@ -57,7 +57,7 @@
 
   (testing "command help renders command sections"
     (let [text (cli/command-help app "create")]
-      (is (some? (re-find #"wtr create BRANCH" text)))
+      (is (some? (re-find #"wtr create \[BRANCH\]" text)))
       (is (some? (re-find #"Create a worktree for a branch\." text)))
       (is (some? (re-find #"Args:" text)))
       (is (some? (re-find #"BRANCH" text)))
@@ -407,7 +407,7 @@
       (is (= :help (:status root-short-help-result)))
       (is (= :help (:status command-help-result)))
       (is (= "create" (:name (:command command-help-result))))
-      (is (some? (re-find #"wtr create BRANCH" (:text command-help-result))))
+      (is (some? (re-find #"wtr create \[BRANCH\]" (:text command-help-result))))
       (is (= :help (:status command-long-help-result)))
       (is (= :help (:status command-short-help-result)))
       (is (= :error (:status unknown-help-result)))
