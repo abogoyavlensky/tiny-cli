@@ -1,7 +1,7 @@
 .PHONY: build dev-install dev-run test clean
 
-LG ?= /Users/andrew/Projects/let-go/lg
-LGX ?= "LGX_LG=/Users/andrew/Projects/let-go/lg lgx"
+LG ?= lg
+LGX ?= lgx
 BIN := bin/tiny-cli
 
 # Styling for output
@@ -24,13 +24,13 @@ help:
 build:
 	@$(INFO) "Building $(BIN)..."
 	@mkdir -p $(dir $(BIN))
-	@LGX_LG=/Users/andrew/Projects/let-go/lg lgx run -b $(BIN) src/tiny_cli/core.cljc
+	@lgx exec -b $(BIN) src/tiny_cli/core.cljc
 	@echo "built $(BIN)"
 
 .PHONY: dev-run  # Run development script
 dev-run:
 	@$(INFO) "Running development script..."
-	@LGX_LG=/Users/andrew/Projects/let-go/lg lgx run src/tiny_cli/core.cljc
+	@lgx exec src/tiny_cli/core.cljc
 
 .PHONY: test  # Run tests
 test:

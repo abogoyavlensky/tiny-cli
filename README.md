@@ -97,7 +97,7 @@ command, one required positional arg, one command option, and one global flag.
 Example:
 
 ```bash
-lgx run deploy.lg --dry-run service api --env prod
+lgx exec deploy.lg --dry-run service api --env prod
 ```
 
 Output:
