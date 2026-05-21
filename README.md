@@ -86,9 +86,10 @@ command, one required positional arg, one command option, and one global flag.
                :run deploy-service!}]})
 
 (defn- cli-argv [argv]
-  "Return args after the script path while developing, or CLI args in bundled mode."
-  (let [tail (drop-while #(not (str/ends-with? % ".lg")) argv)]
-    (or (seq (rest tail)) (rest argv))))
+  "Return args after the `--` separator while developing, or CLI args in bundled mode."
+  (if (some #(= % "--") argv)
+    (rest (drop-while #(not (= % "--")) argv))
+    (rest argv)))
 
 (when-not *compiling-aot* 
   (cli/run! app (cli-argv os/args)))
@@ -97,7 +98,7 @@ command, one required positional arg, one command option, and one global flag.
 Example:
 
 ```bash
-lgx exec deploy.lg --dry-run service api --env prod
+lgx run deploy.lg --dry-run service api --env prod
 ```
 
 Output:

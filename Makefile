@@ -24,13 +24,13 @@ help:
 build:
 	@$(INFO) "Building $(BIN)..."
 	@mkdir -p $(dir $(BIN))
-	@lgx exec -b $(BIN) src/tiny_cli/core.cljc
+	@lgx run -b $(BIN) src/tiny_cli/core.cljc
 	@echo "built $(BIN)"
 
 .PHONY: dev-run  # Run development script
 dev-run:
 	@$(INFO) "Running development script..."
-	@lgx exec src/tiny_cli/core.cljc
+	@lgx run src/tiny_cli/core.cljc
 
 .PHONY: test  # Run tests
 test:
