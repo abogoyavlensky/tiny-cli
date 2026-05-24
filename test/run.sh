@@ -7,7 +7,7 @@ ROOT="$(cd "$HERE/.." && pwd)"
 cd "$ROOT"
 
 echo "==> let-go"
-lgx run test/tiny_cli/core_test.cljc
+lgx test
 
 if command -v clojure >/dev/null && clojure -Sdescribe >/dev/null 2>&1; then
   echo

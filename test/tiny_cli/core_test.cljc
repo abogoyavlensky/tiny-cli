@@ -477,10 +477,7 @@
              @called)))))
 
 #?(:lg
-   (do
-     (run-tests)
-     (when-not test/*test-result*
-       (os/exit 1)))
+   (do)
    :default
    (let [result (run-tests)]
      (when (pos? (+ (:fail result) (:error result)))

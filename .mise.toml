@@ -1,7 +1,7 @@
 # .mise.toml
 [tools]
-lg = "2.0.2"
-lgx = "0.1.0-alpha4"
+lg = "1.8.0"
+lgx = "0.1.0-alpha8"
 cljfmt = "0.16.4"
 clojure = "1.12.4.1629"
 babashka = "1.12.218"

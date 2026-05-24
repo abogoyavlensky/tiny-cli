@@ -20,18 +20,6 @@ help:
 	@$(INFO) "Commands:"
 	@grep '^.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/\1 > \2/' | column -tx -s ">"
 
-.PHONY: build  # Build binary
-build:
-	@$(INFO) "Building $(BIN)..."
-	@mkdir -p $(dir $(BIN))
-	@lgx run -b $(BIN) src/tiny_cli/core.cljc
-	@echo "built $(BIN)"
-
-.PHONY: dev-run  # Run development script
-dev-run:
-	@$(INFO) "Running development script..."
-	@lgx run src/tiny_cli/core.cljc
-
 .PHONY: test  # Run tests
 test:
 	@$(INFO) "Running tests..."
