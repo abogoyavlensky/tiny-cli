@@ -65,14 +65,14 @@
   [app command]
   (let [args (map #(key-placeholder (:key %)) (:args command))]
     (str/join " " (filter some?
-                    [(:name app)
-                     (when (seq (:opts app))
-                      "[global options]")
-                     (:name command)
-                     (when (seq args)
-                       (str "[" (str/join " " args) "]"))
-                     (when (seq (:opts command))
-                       "[options]")]))))
+                          [(:name app)
+                           (when (seq (:opts app))
+                             "[global options]")
+                           (:name command)
+                           (when (seq args)
+                             (str "[" (str/join " " args) "]"))
+                           (when (seq (:opts command))
+                             "[options]")]))))
 
 (defn- command-usage-min
   [app command]
