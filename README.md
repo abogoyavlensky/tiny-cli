@@ -301,5 +301,5 @@ exiting, which makes command dispatch easy to test.
 Run the shared `.cljc` test suite:
 
 ```bash
-make test
+lgx test-all
 ```
