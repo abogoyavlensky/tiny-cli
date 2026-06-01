@@ -23,5 +23,4 @@ jobs:
           gh release create "$TAG" \
               --repo="$GITHUB_REPOSITORY" \
               --title="${TAG}" \
-              --generate-notes \
-              dist/*
+              --generate-notes
