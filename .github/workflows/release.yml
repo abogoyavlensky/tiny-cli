@@ -7,7 +7,7 @@ on:
 
 jobs:
   checks:
-    uses: ./.github/workflows/checks.yaml
+    uses: ./checks.yaml
 
   release:
     needs: [checks]
