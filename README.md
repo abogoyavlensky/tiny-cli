@@ -1,7 +1,7 @@
 # tiny-cli
 
-A zero-dependency CLI library for [let-go](https://github.com/nooga/let-go), 
-[Clojure](https://clojure.org/index), and [Babashka](https://github.com/babashka/babashka). 
+A zero-dependency CLI argument parser for [let-go](https://github.com/nooga/let-go), compatible with 
+[Clojure](https://clojure.org/index) and [Babashka](https://github.com/babashka/babashka). 
 It is small on purpose: flat commands, Unix-style options, generated help, 
 version output, and simple validation.
 
@@ -25,10 +25,7 @@ executable name or script path. Normalize process args before calling
 `tiny-cli`:
 
 ```clojure
-; let-go interpreted script
-(cli/run! app (vec (drop 4 os/args)))
-
-; let-go bundled binary
+; let-go
 (cli/run! app (vec (rest os/args)))
 
 ; Clojure / Babashka
@@ -39,7 +36,7 @@ executable name or script path. Normalize process args before calling
 handlers, and exits for built-ins and parse errors. It does not catch handler
 exceptions.
 
-## Minimal let-go Tool
+## Minimal let-go cli app
 
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
@@ -99,7 +96,7 @@ command, one required positional arg, one command option, and one global flag.
 Example:
 
 ```bash
-lgx run deploy.lg --dry-run service api --env prod
+lgx run -- --dry-run service api --env prod
 ```
 
 Output:
@@ -107,6 +104,16 @@ Output:
 ```text
 would deploy api to prod
 ```
+
+Or build it and run binary:
+
+```bash
+lgx build
+deploy --dry-run service api --env prod
+```
+
+> [!NOTE]
+> [lgx](https://github.com/abogoyavlensky/lgx) is a dependency and project management tool for let-go.
 
 ## Expected App Spec
 
@@ -306,3 +313,7 @@ Run the shared `.cljc` test suite:
 ```bash
 lgx test-all
 ```
+
+## License
+MIT License
+Copyright (c) 2026 Andrey Bogoyavlenskiy
