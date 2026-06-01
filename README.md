@@ -242,18 +242,18 @@ For the deploy example, root help looks like this:
 deploy - Deploy one service.
 
 Usage:
-  deploy [options] <command> [args]
+  deploy [global options] <command> [args] [options]
   deploy help [command]
   deploy --help
 
-Options:
+Global Options:
   -n, --dry-run  Print the deployment plan.
+  -h, --help  Show help.
+  --version  Print version.
 
 Commands:
   service  Deploy a service.
   help [command]  Show help.
-  -h, --help  Show help.
-  --version  Print version.
 
 Run 'deploy <command> --help' for more information on a command.
 ```
@@ -261,11 +261,12 @@ Run 'deploy <command> --help' for more information on a command.
 Command help looks like this:
 
 ```text
-deploy service SERVICE - Deploy a service.
+deploy service <SERVICE> - Deploy a service.
 
 Usage:
-  deploy service SERVICE
+  deploy [global options] service <SERVICE> [options]
   deploy help service
+  deploy service -h, --help  Show help for service.
 
 Args:
   SERVICE  Service name.
@@ -275,8 +276,6 @@ Options:
 
 Global Options:
   -n, --dry-run  Print the deployment plan.
-  help service  Show help for service.
-  -h, --help  Show help for service.
 ```
 
 ## Library Functions
