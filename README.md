@@ -67,6 +67,7 @@ command, one required positional arg, one command option, and one global flag.
   {:name "deploy"
    :version "0.1.0"
    :doc "Deploy one service."
+   :footer "Run 'deploy <command> --help' for more information on a command."
    :opts [{:key :dry-run?
            :short "n"
            :long "dry-run"
@@ -137,6 +138,7 @@ App fields:
 | `:name` | yes | Executable name used in help and version output. |
 | `:version` | no | Version used by `--version` and unclaimed `-v`. |
 | `:doc` | no | Root description shown in help. |
+| `:footer` | no | Trailing text shown after commands in root help. |
 | `:opts` | no | Global option specs. |
 | `:commands` | yes | Flat list of command specs. |
 
@@ -252,6 +254,8 @@ Commands:
   help [command]  Show help.
   -h, --help  Show help.
   --version  Print version.
+
+Run 'deploy <command> --help' for more information on a command.
 ```
 
 Command help looks like this:
