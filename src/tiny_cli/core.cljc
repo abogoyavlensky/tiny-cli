@@ -1,6 +1,6 @@
 (ns tiny-cli.core
-  #?(:clj (:refer-clojure :exclude [run!])
-     :lg (:refer-clojure :exclude [run!]))
+  #?(:lg (:refer-clojure :exclude [run!])
+     :clj (:refer-clojure :exclude [run!]))
   (:require #?(:lg [os])
             #?(:lg [string :as str]
                :default [clojure.string :as str])))
