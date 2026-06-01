@@ -103,6 +103,11 @@
   [app]
   ["  help [command]  Show help."])
 
+(defn- footer-lines
+  [app]
+  (when (seq (:footer app))
+    ["" (:footer app)]))
+
 (defn- command-option-built-ins
   [app-name command-name]
   (str "  " app-name " " command-name " -h, --help  Show help for " command-name "."))
@@ -454,7 +459,8 @@
             (root-option-built-ins app)
             ["" "Commands:"]
             (map format-command-row (:commands app))
-            (root-command-built-ins app))))
+            (root-command-built-ins app)
+            (footer-lines app))))
 
 (defn command-help
   [app command-name]

@@ -546,6 +546,27 @@
       (is (some? (re-find #"^bare go\n" command-text)))
       (is (nil? (re-find #"bare go - " command-text))))))
 
+(deftest footer-rendering
+  (testing "root help renders the footer after all sections"
+    (let [footer-app (assoc app :footer "Run 'wtr <command> --help' for more info.")
+          text (cli/root-help footer-app)]
+      (is (some? (re-find #"\n\nRun 'wtr <command> --help' for more info\." text)))
+      (is (some? (re-find #"for more info\.\z" text)))))
+
+  (testing "command help never renders the footer"
+    (let [footer-app (assoc app :footer "Run 'wtr <command> --help' for more info.")
+          text (cli/command-help footer-app "create")]
+      (is (nil? (re-find #"for more info" text)))))
+
+  (testing "absent footer produces no trailing blank line"
+    (let [text (cli/root-help app)]
+      (is (nil? (re-find #"for more info" text)))
+      (is (nil? (re-find #"\n\n\z" text)))))
+
+  (testing "empty footer renders identically to no footer"
+    (is (= (cli/root-help app)
+           (cli/root-help (assoc app :footer ""))))))
+
 #?(:lg
    (do)
    :default
