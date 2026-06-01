@@ -7,16 +7,34 @@ version output, and simple validation.
 
 ## Getting Started
 
-Require the core namespace:
+> [!NOTE]
+> [lgx](https://github.com/abogoyavlensky/lgx) is a dependency and project management tool for let-go.
+
+Add `tiny-cli` to your dependencies at `lgx.edn` file:
+
+```clojure
+{:deps {abogoyavlenskiy/tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
+                                  :git/sha "0.1.0"}}}
+```
+
+Require the core namespace and use `run!` at the application edge:
 
 ```clojure
 (ns my.tool
   (:require [tiny-cli.core :as cli]))
-```
 
-Use `run!` at the application edge:
+(defn do-something!
+  [{:keys [global args opts]}]
+  (println "Doing something with" args "and" opts "and global options" global))
 
-```clojure
+(def app
+  {:name "mycli"
+   :version "0.1.0"
+   :doc "My awesome CLI tool."
+   :commands [{:name "do-something"
+               :doc "Do something useful."
+               :run do-something!}]})
+
 (cli/run! app argv)
 ```
 
@@ -111,9 +129,6 @@ Or build it and run binary:
 lgx build
 deploy --dry-run service api --env prod
 ```
-
-> [!NOTE]
-> [lgx](https://github.com/abogoyavlensky/lgx) is a dependency and project management tool for let-go.
 
 ## Expected App Spec
 
