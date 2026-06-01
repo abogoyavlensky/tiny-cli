@@ -71,6 +71,16 @@
   [arg]
   (str "<" (key-placeholder (:key arg)) ">"))
 
+(defn- variadic-placeholder
+  [variadic]
+  (str "[" (key-placeholder (:key variadic)) "...]"))
+
+(defn- arg-specs
+  "Fixed positional args plus the optional variadic spec, as one sequence."
+  [command]
+  (concat (:args command)
+          (when (:variadic command) [(:variadic command)])))
+
 (defn- command-usage
   [app command]
   (let [args (map arg-placeholder (:args command))]
@@ -81,6 +91,8 @@
                            (:name command)
                            (when (seq args)
                              (str/join " " args))
+                           (when (:variadic command)
+                             (variadic-placeholder (:variadic command)))
                            (when (seq (:opts command))
                              "[options]")]))))
 
@@ -91,7 +103,9 @@
                           [(:name app)
                            (:name command)
                            (when (seq args)
-                             (str/join " " args))]))))
+                             (str/join " " args))
+                           (when (:variadic command)
+                             (variadic-placeholder (:variadic command)))]))))
 
 (defn- root-option-built-ins
   [app]
@@ -310,17 +324,20 @@
     (nil? (:run command))
     (error-result (str "Missing command runner: " (:name command)))
 
-    (first-missing-key (:args command))
+    (first-missing-key (arg-specs command))
     (error-result "Arg requires :key.")
 
     (first-missing-key (:opts command))
     (error-result "Option requires :key.")
 
-    (first-duplicate-key (:args command))
-    (error-result (str "Duplicate arg key: " (first-duplicate-key (:args command))))
+    (first-duplicate-key (arg-specs command))
+    (error-result (str "Duplicate arg key: " (first-duplicate-key (arg-specs command))))
 
     (first-duplicate-key (:opts command))
     (error-result (str "Duplicate option key: " (first-duplicate-key (:opts command))))
+
+    (and (:variadic command) (seq (:opts command)))
+    (error-result (str "Command :variadic cannot be combined with :opts: " (:name command)))
 
     (not (option-spellings-valid? (:opts command)))
     (error-result "Option requires :short or :long.")
@@ -334,7 +351,7 @@
     (duplicate-in (option-spellings (:opts command)))
     (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts command)))))
 
-    (first-invalid-validation (concat (:args command) (:opts command)))
+    (first-invalid-validation (concat (arg-specs command) (:opts command)))
     (error-result "Invalid validation spec.")))
 
 (defn- first-command-spec-error
@@ -419,24 +436,30 @@
 
 (defn- finalize-context
   [app command state]
-  (let [arg-count (count (:args command))
-        provided-count (count (:positionals state))]
+  (let [fixed-specs (:args command)
+        variadic (:variadic command)
+        arg-count (count fixed-specs)
+        positionals (:positionals state)
+        provided-count (count positionals)]
     (cond
       (< provided-count arg-count)
       (error-result (str "Missing argument: "
-                         (key-placeholder (:key (nth (:args command) provided-count)))))
+                         (key-placeholder (:key (nth fixed-specs provided-count)))))
 
-      (> provided-count arg-count)
+      (and (not variadic) (> provided-count arg-count))
       (error-result "Too many arguments.")
 
       :else
-      (let [args (into {} (map vector (map :key (:args command)) (:positionals state)))
+      (let [fixed (into {} (map vector (map :key fixed-specs) positionals))
+            args (if variadic
+                   (assoc fixed (:key variadic) (vec (drop arg-count positionals)))
+                   fixed)
             global (apply-defaults (:opts app) (:global state))
             opts (apply-defaults (:opts command) (:opts state))]
         (if-let [missing (or (required-option-missing (:opts app) global)
                              (required-option-missing (:opts command) opts))]
           (error-result (str "Missing required option: " (option-label missing)))
-          (if-let [message (or (validation-error (:args command) args)
+          (if-let [message (or (validation-error (arg-specs command) args)
                                (validation-error (:opts app) global)
                                (validation-error (:opts command) opts))]
             (error-result message)
@@ -472,9 +495,9 @@
                (str "  " (command-usage app command))
                (str "  " (:name app) " help " (:name command))
                (command-option-built-ins (:name app) (:name command))]
-              (when (seq (:args command))
+              (when (seq (arg-specs command))
                 (concat ["" "Args:"]
-                        (map format-arg (:args command))))
+                        (map format-arg (arg-specs command))))
               (when (seq (:opts command))
                 (concat ["" "Options:"]
                         (map format-option (:opts command))))
@@ -506,6 +529,14 @@
           (let [token (first tokens)
                 more (vec (rest tokens))]
             (cond
+              ;; Greedy variadic: once the command's fixed args are filled,
+              ;; slurp every remaining token verbatim — including option-like
+              ;; tokens and a literal `--` — into the variadic vector.
+              (and command
+                   (:variadic command)
+                   (>= (count (:positionals state)) (count (:args command))))
+              (recur more command (update state :positionals conj token))
+
               (= "--version" token)
               (version-available app)
 

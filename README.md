@@ -171,6 +171,7 @@ Command fields:
 | `:name` | yes | Command token typed by the user. |
 | `:doc` | no | Command description shown in help. |
 | `:args` | no | Fixed positional args. All declared args are required. |
+| `:variadic` | no | A single arg spec collecting all trailing tokens into a vector. See [Variadic Trailing Args](#variadic-trailing-args). |
 | `:opts` | no | Command-specific option specs. |
 | `:run` | yes | Handler function called with the parsed context. |
 
@@ -225,6 +226,66 @@ The handler receives:
 
 CLI values stay as raw strings. `tiny-cli` applies defaults, checks required
 options, and runs validation predicates, but it does not coerce types.
+
+## Variadic Trailing Args
+
+A command may declare a single `:variadic` arg to collect everything after its
+fixed `:args` into a vector. This is what `run`/`exec`-style commands need.
+
+```clojure
+{:name "run"
+ :doc "Run a command in a worktree."
+ :args [{:key :name :doc "Worktree name."}]
+ :variadic {:key :cmd :doc "Command to run; omit for a shell."}
+ :run run!}
+```
+
+Once the fixed args are filled, parsing switches to *rest mode*: every remaining
+token is appended verbatim — including option-like tokens and a literal `--` —
+so you don't need a `--` separator to pass flags through:
+
+```bash
+tool run feat-x npm test            ; {:name "feat-x" :cmd ["npm" "test"]}
+tool run feat-x git status -s       ; :cmd ["git" "status" "-s"]
+tool run feat-x git checkout -- f   ; :cmd ["git" "checkout" "--" "f"]
+tool run feat-x                     ; :cmd []
+```
+
+The variadic key lands in the handler's `:args` map alongside the fixed args.
+Constraints: the variadic must be the only one per command, and a command's own
+`:opts` cannot appear after the variadic begins (they are slurped into it) — put
+global options before the command. The fixed args remain required; omitting them
+is still a `Missing argument` error.
+
+## Running Under lgx (`--` and `LGX_RUN`)
+
+A tool built with [lgx](https://github.com/abogoyavlensky/lgx) runs two ways:
+as a bundled binary (`tool run …`) and in development via `lgx run -- run …`.
+`lgx run` injects a `--` marker before your app args, so the conventional way to
+recover them is:
+
+```clojure
+(rest (drop-while #(not= "--" %) (os/args)))   ; dev: drop up to lgx's marker
+```
+
+But that idiom is wrong for a *bundled* binary, where there is no marker and a
+`--` may legitimately appear inside the user's command (e.g. `git checkout --`).
+Detect the mode out-of-band instead of sniffing for `--`. `lgx run` sets
+`LGX_RUN=1` in the spawned process, so:
+
+```clojure
+(defn- strip-runner-args
+  "Application args from a raw argv, in both run modes."
+  [argv lgx-run?]
+  (if lgx-run?
+    (rest (drop-while #(not= "--" %) argv))   ; dev: drop up to & incl marker
+    (rest argv)))                              ; bundled: drop argv[0]
+
+(strip-runner-args (os/args) (not (str/blank? (os/getenv "LGX_RUN"))))
+```
+
+This keeps a literal `--` inside a variadic command intact when running as a
+binary. See lgx's README for the `LGX_RUN` contract.
 
 ## Built-In Commands and Options
 

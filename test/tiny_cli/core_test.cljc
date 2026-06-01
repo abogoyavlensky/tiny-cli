@@ -567,6 +567,77 @@
     (is (= (cli/root-help app)
            (cli/root-help (assoc app :footer ""))))))
 
+(def run-app
+  {:name "wtr"
+   :version "0.1.0"
+   :opts [{:key :base-dir
+           :long "base-dir"
+           :value? true
+           :doc "Base dir."}]
+   :commands [{:name "run"
+               :doc "Run a command in a worktree."
+               :args [{:key :name
+                       :doc "Worktree name."}]
+               :variadic {:key :cmd
+                          :doc "Command to run; omit for a shell."}
+               :run (fn [_] :ran)}]})
+
+(deftest variadic-args
+  (testing "collects trailing tokens into a vector"
+    (let [result (cli/parse run-app ["run" "feat-x" "npm" "test"])]
+      (is (= :ok (:status result)))
+      (is (= "feat-x" (get-in result [:context :args :name])))
+      (is (= ["npm" "test"] (get-in result [:context :args :cmd])))))
+
+  (testing "slurps option-like tokens after the fixed arg (no -- needed)"
+    (let [result (cli/parse run-app ["run" "feat-x" "git" "status" "-s"])]
+      (is (= :ok (:status result)))
+      (is (= ["git" "status" "-s"] (get-in result [:context :args :cmd])))))
+
+  (testing "slurps a literal -- inside the command"
+    (let [result (cli/parse run-app ["run" "feat-x" "git" "checkout" "--" "file"])]
+      (is (= :ok (:status result)))
+      (is (= ["git" "checkout" "--" "file"] (get-in result [:context :args :cmd])))))
+
+  (testing "empty command yields an empty vector"
+    (let [result (cli/parse run-app ["run" "feat-x"])]
+      (is (= :ok (:status result)))
+      (is (= "feat-x" (get-in result [:context :args :name])))
+      (is (= [] (get-in result [:context :args :cmd])))))
+
+  (testing "missing the required fixed arg errors"
+    (let [result (cli/parse run-app ["run"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing argument" (:message result))))))
+
+  (testing "--help before the fixed arg still shows command help"
+    (let [result (cli/parse run-app ["run" "--help"])]
+      (is (= :help (:status result)))
+      (is (some? (re-find #"run" (:text result))))))
+
+  (testing "command help renders the variadic placeholder"
+    (let [text (cli/command-help run-app "run")]
+      (is (some? (re-find #"\[CMD\.\.\.\]" text)))))
+
+  (testing "a :validate on the variadic is enforced"
+    (let [vapp (assoc-in run-app [:commands 0 :variadic :validate]
+                         {:pred seq
+                          :msg "command is required"})
+          ok (cli/parse vapp ["run" "feat-x" "echo" "hi"])
+          bad (cli/parse vapp ["run" "feat-x"])]
+      (is (= :ok (:status ok)))
+      (is (= :error (:status bad)))
+      (is (some? (re-find #"command is required" (:message bad))))))
+
+  (testing "a command cannot declare both :variadic and :opts"
+    (let [bad-app (assoc-in run-app [:commands 0 :opts]
+                            [{:key :force?
+                              :short "f"
+                              :long "force"}])
+          result (cli/parse bad-app ["run" "feat-x"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #":variadic" (:message result)))))))
+
 #?(:lg
    (do)
    :default
