@@ -13,8 +13,8 @@ version output, and simple validation.
 Add `tiny-cli` to your dependencies at `lgx.edn` file:
 
 ```clojure
-{:deps {abogoyavlenskiy/tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
-                                  :git/sha "0.1.0"}}}
+{:deps {abogoyavlensky/tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
+                                 :git/sha "0.1.0"}}}
 ```
 
 Require the core namespace and use `run!` at the application edge:
@@ -59,7 +59,7 @@ exceptions.
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
 
-*deploy.lg*
+*main.lg*
 
 ```clojure
 (ns deploy
