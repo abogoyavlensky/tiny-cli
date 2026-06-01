@@ -57,7 +57,7 @@
 
   (testing "command help renders command sections"
     (let [text (cli/command-help app "create")]
-      (is (some? (re-find #"wtr create \[BRANCH\]" text)))
+      (is (some? (re-find #"wtr create <BRANCH>" text)))
       (is (some? (re-find #"Create a worktree for a branch\." text)))
       (is (some? (re-find #"Args:" text)))
       (is (some? (re-find #"BRANCH" text)))
@@ -407,7 +407,7 @@
       (is (= :help (:status root-short-help-result)))
       (is (= :help (:status command-help-result)))
       (is (= "create" (:name (:command command-help-result))))
-      (is (some? (re-find #"wtr create \[BRANCH\]" (:text command-help-result))))
+      (is (some? (re-find #"wtr create <BRANCH>" (:text command-help-result))))
       (is (= :help (:status command-long-help-result)))
       (is (= :help (:status command-short-help-result)))
       (is (= :error (:status unknown-help-result)))
@@ -475,6 +475,76 @@
               :args {:value "x"}
               :opts {}}
              @called)))))
+
+(deftest reserved-and-spelling-validation
+  (testing "command named help is a reserved-name spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "help"
+                               :run create!}]}
+          result (cli/parse bad-app [])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Reserved command name" (:message result))))))
+
+  (testing "built-in option spellings are reserved spec errors"
+    (let [long-help {:name "bad"
+                     :commands [{:name "go"
+                                 :opts [{:key :help?
+                                         :long "help"}]
+                                 :run create!}]}
+          short-h {:name "bad"
+                   :commands [{:name "go"
+                               :opts [{:key :host
+                                       :short "h"}]
+                               :run create!}]}
+          long-version {:name "bad"
+                        :opts [{:key :version?
+                                :long "version"}]
+                        :commands [{:name "go"
+                                    :run create!}]}
+          long-help-result (cli/parse long-help [])
+          short-h-result (cli/parse short-h [])
+          long-version-result (cli/parse long-version [])]
+      (is (= :error (:status long-help-result)))
+      (is (some? (re-find #"Reserved option spelling: --help" (:message long-help-result))))
+      (is (= :error (:status short-h-result)))
+      (is (some? (re-find #"Reserved option spelling: -h" (:message short-h-result))))
+      (is (= :error (:status long-version-result)))
+      (is (some? (re-find #"Reserved option spelling: --version" (:message long-version-result))))))
+
+  (testing "short option spelling must be a single character"
+    (let [multi {:name "bad"
+                 :commands [{:name "go"
+                             :opts [{:key :force?
+                                     :short "foo"}]
+                             :run create!}]}
+          empty {:name "bad"
+                 :commands [{:name "go"
+                             :opts [{:key :force?
+                                     :short ""}]
+                             :run create!}]}
+          multi-result (cli/parse multi [])
+          empty-result (cli/parse empty [])]
+      (is (= :error (:status multi-result)))
+      (is (some? (re-find #"single character" (:message multi-result))))
+      (is (= :error (:status empty-result)))
+      (is (some? (re-find #"single character" (:message empty-result))))))
+
+  (testing "help built-in rejects extra arguments"
+    (let [result (cli/parse app ["help" "create" "extra"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Too many arguments for help" (:message result)))))))
+
+(deftest optional-docs-render-cleanly
+  (testing "missing app and command docs do not produce dangling separators"
+    (let [no-doc-app {:name "bare"
+                      :commands [{:name "go"
+                                  :run create!}]}
+          root-text (cli/root-help no-doc-app)
+          command-text (cli/command-help no-doc-app "go")]
+      (is (some? (re-find #"^bare\n" root-text)))
+      (is (nil? (re-find #"bare - " root-text)))
+      (is (some? (re-find #"^bare go\n" command-text)))
+      (is (nil? (re-find #"bare go - " command-text))))))
 
 #?(:lg
    (do)

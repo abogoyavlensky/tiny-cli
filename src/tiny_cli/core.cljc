@@ -13,6 +13,12 @@
   [app command-name]
   (first (filter #(= command-name (:name %)) (:commands app))))
 
+(defn- summary-line
+  [heading doc]
+  (if (seq doc)
+    (str heading " - " doc)
+    heading))
+
 (defn- key-placeholder
   [k]
   (-> (name k)
@@ -61,27 +67,31 @@
        (when (seq (:doc command))
          (str "  " (:doc command)))))
 
+(defn- arg-placeholder
+  [arg]
+  (str "<" (key-placeholder (:key arg)) ">"))
+
 (defn- command-usage
   [app command]
-  (let [args (map #(key-placeholder (:key %)) (:args command))]
+  (let [args (map arg-placeholder (:args command))]
     (str/join " " (filter some?
                           [(:name app)
                            (when (seq (:opts app))
                              "[global options]")
                            (:name command)
                            (when (seq args)
-                             (str "[" (str/join " " args) "]"))
+                             (str/join " " args))
                            (when (seq (:opts command))
                              "[options]")]))))
 
 (defn- command-usage-min
   [app command]
-  (let [args (map #(key-placeholder (:key %)) (:args command))]
+  (let [args (map arg-placeholder (:args command))]
     (str/join " " (filter some?
                           [(:name app)
                            (:name command)
                            (when (seq args)
-                             (str "[" (str/join " " args) "]"))]))))
+                             (str/join " " args))]))))
 
 (defn- root-option-built-ins
   [app]
@@ -189,13 +199,6 @@
     (parse-long-option state token rest-tokens long-options)
     (parse-short-group state token rest-tokens short-options)))
 
-(defn- long-spelling
-  [token]
-  (let [eq-idx (str/index-of token "=")]
-    (if eq-idx
-      (subs token 0 eq-idx)
-      token)))
-
 (defn- target-index
   [target opts index-fn]
   (into {} (map (fn [[spelling opt]]
@@ -228,9 +231,19 @@
           command-name
           (recur (conj seen command-name) (rest remaining)))))))
 
+(def ^:private reserved-command-names #{"help"})
+
+(def ^:private reserved-option-spellings #{"--help" "-h" "--version"})
+
 (defn- option-spellings-valid?
   [opts]
   (every? #(or (:short %) (:long %)) opts))
+
+(defn- first-invalid-short
+  [opts]
+  (first (filter #(when-let [spelling (:short %)]
+                    (not= 1 (count spelling)))
+                 opts)))
 
 (defn- first-missing-key
   [specs]
@@ -263,6 +276,10 @@
                     (when (:short opt) [(str "-" (:short opt))])))
           opts))
 
+(defn- first-reserved-spelling
+  [opts]
+  (first (filter reserved-option-spellings (option-spellings opts))))
+
 (defn- bad-validation?
   [validation]
   (or (nil? (:pred validation))
@@ -282,6 +299,9 @@
     (nil? (:name command))
     (error-result "Command requires :name.")
 
+    (contains? reserved-command-names (:name command))
+    (error-result (str "Reserved command name: " (:name command)))
+
     (nil? (:run command))
     (error-result (str "Missing command runner: " (:name command)))
 
@@ -299,6 +319,12 @@
 
     (not (option-spellings-valid? (:opts command)))
     (error-result "Option requires :short or :long.")
+
+    (first-invalid-short (:opts command))
+    (error-result (str "Short option must be a single character: " (:short (first-invalid-short (:opts command)))))
+
+    (first-reserved-spelling (:opts command))
+    (error-result (str "Reserved option spelling: " (first-reserved-spelling (:opts command))))
 
     (duplicate-in (option-spellings (:opts command)))
     (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts command)))))
@@ -338,6 +364,12 @@
 
     (not (option-spellings-valid? (:opts app)))
     (error-result "Option requires :short or :long.")
+
+    (first-invalid-short (:opts app))
+    (error-result (str "Short option must be a single character: " (:short (first-invalid-short (:opts app)))))
+
+    (first-reserved-spelling (:opts app))
+    (error-result (str "Reserved option spelling: " (first-reserved-spelling (:opts app))))
 
     (duplicate-in (option-spellings (:opts app)))
     (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts app)))))
@@ -410,7 +442,7 @@
 (defn root-help
   [app]
   (join-lines
-    (concat [(str (:name app) " - " (:doc app))
+    (concat [(summary-line (:name app) (:doc app))
              ""
              "Usage:"
              (str "  " (:name app) " [global options] <command> [args] [options]")
@@ -428,7 +460,7 @@
   [app command-name]
   (if-let [command (command-by-name app command-name)]
     (join-lines
-      (concat [(str (command-usage-min app command) " - " (:doc command))
+      (concat [(summary-line (command-usage-min app command) (:doc command))
                ""
                "Usage:"
                (str "  " (command-usage app command))
@@ -478,11 +510,17 @@
 
               (and (nil? command)
                    (= "help" token))
-              (if (seq more)
-                (command-help-result app (first more))
+              (cond
+                (empty? more)
                 {:status :help
                  :command nil
-                 :text (root-help app)})
+                 :text (root-help app)}
+
+                (= 1 (count more))
+                (command-help-result app (first more))
+
+                :else
+                (error-result "Too many arguments for help."))
 
               (and (nil? command)
                    (or (= "--help" token)

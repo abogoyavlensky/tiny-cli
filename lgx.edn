@@ -5,7 +5,20 @@
                          {:sh "clojure -M -e \"(require 'tiny-cli.core-test)\""}
                          {:sh "echo \"==> babashka\""}
                          {:sh "bb -cp src:test -e \"(require 'tiny-cli.core-test)\""}]}
+         
          :fmt {:doc "Format source files"
                :do [{:sh "cljfmt fix"}]}
+         
          :fmt-check {:doc "Check source file formatting"
-                     :do [{:sh "cljfmt check"}]}}}
+                     :do [{:sh "cljfmt check"}]}
+         
+         :check {:doc "Run all checks"
+                 :do [{:sh "lgx fmt"}
+                      {:sh "lgx test-all"}]}
+
+         :release {:doc "Release a new version"
+                   :do [{:sh "echo \"==> Creating git tag\""}
+                        ; TODO: make configurable in lgx
+                        {:sh ["git" "tag" "v0.1.0-alpha1"]}
+                        {:sh "echo \"==> Pushing git tag\""}
+                        {:sh "git push --tags"}]}}}
