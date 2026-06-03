@@ -118,8 +118,8 @@
       ;; widest label is "wtr help [command]" (18) => docs start at column 22
       (is (= 22 (str/index-of ls-line "List things.")))
       (is (= 22 (str/index-of cb-line "Create a branch.")))
-      (is (= 22 (str/index-of help-cmd-line "Show command help.")))
-      (is (= 22 (str/index-of help-line "Show tool help.")))
+      (is (= 22 (str/index-of help-cmd-line "Show a command help.")))
+      (is (= 22 (str/index-of help-line "Show the tool help.")))
       (is (= 22 (str/index-of version-line "Print version.")))
       ;; short label is padded: "wtr ls" + 12 pad + 2 gutter = 14 spaces before doc
       (is (some? (re-find #"^  wtr ls {14}List things\.$" ls-line)))))

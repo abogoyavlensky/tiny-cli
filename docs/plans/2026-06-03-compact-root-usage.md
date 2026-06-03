@@ -33,8 +33,8 @@ help should make `Usage:` a compact command cheat sheet, similar to `lgx`:
 ```text
 Usage:
   wtr create <BRANCH>  Create a worktree for a branch.
-  wtr help [command]   Show command help.
-  wtr --help           Show tool help.
+  wtr help [command]   Show a command help.
+  wtr --help           Show the tool help.
   wtr --version        Print version.
 ```
 
@@ -61,8 +61,8 @@ rows:
 - User commands: label is `(command-usage-min app command)`, doc is
   `(:doc command)`.
 - Built-ins:
-  - `<app> help [command]` -> `Show command help.`
-  - `<app> --help` -> `Show tool help.`
+  - `<app> help [command]` -> `Show a command help.`
+  - `<app> --help` -> `Show the tool help.`
   - `<app> --version` -> `Print version.` only when `(:version app)` is present.
 
 Remove the root `Commands:` section entirely. Root `Global Options:` should list
@@ -209,8 +209,8 @@ Use focused rendering tests around `root-help`:
   ```text
   Usage:
     deploy service <SERVICE>  Deploy a service.
-    deploy help [command]     Show command help.
-    deploy --help             Show tool help.
+    deploy help [command]     Show a command help.
+    deploy --help             Show the tool help.
     deploy --version          Print version.
 
   Global Options:

@@ -123,8 +123,8 @@
 (defn- root-usage-built-in-rows
   "Compact `[usage doc]` rows for built-in help/version invocations."
   [app]
-  (concat [[(str (:name app) " help [command]") "Show command help."]
-           [(str (:name app) " --help") "Show tool help."]]
+  (concat [[(str (:name app) " help [command]") "Show a command help."]
+           [(str (:name app) " --help") "Show the tool help."]]
           (when (:version app)
             [[(str (:name app) " --version") "Print version."]])))
 
