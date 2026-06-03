@@ -8,6 +8,13 @@
 
 (defn create! [_ctx] :created)
 
+(defn section
+  "Return the blank-line-delimited help block whose heading line starts with
+   `heading`, or nil. Lets tests scope assertions to a single section."
+  [text heading]
+  (first (filter #(str/starts-with? % heading)
+                 (str/split text #"\n\n"))))
+
 (def app
   {:name "wtr"
    :version "0.1.0"
@@ -46,16 +53,33 @@
       (is (= "wtr 0.1.0" (:text result))))))
 
 (deftest help-rendering
-  (testing "root help renders app sections"
-    (let [text (cli/root-help app)]
-      (is (some? (re-find #"wtr" text)))
+  (testing "root help renders compact usage and a user-only global options block"
+    (let [text (cli/root-help app)
+          globals (section text "Global Options:")]
       (is (some? (re-find #"Small git worktree helper\." text)))
       (is (some? (re-find #"Usage:" text)))
-      (is (some? (re-find #"Global Options:" text)))
-      (is (some? (re-find #"-v, --verbose" text)))
-      (is (some? (re-find #"Commands:" text)))
-      (is (some? (re-find #"create" text)))
-      (is (some? (re-find #"--version" text)))))
+      ;; compact command usage row replaces the generic grammar + Commands list
+      (is (nil? (re-find #"wtr \[global options\] <command> \[args\] \[options\]" text)))
+      (is (nil? (re-find #"Commands:" text)))
+      (is (some? (re-find #"wtr create <BRANCH>  Create a worktree for a branch\." text)))
+      ;; built-in usage rows live in Usage:, not in Global Options:
+      (is (some? (re-find #"wtr help \[command\]" text)))
+      (is (some? (re-find #"wtr --help" text)))
+      (is (some? (re-find #"wtr --version" text)))
+      ;; Global Options: lists only user-defined options
+      (is (some? (re-find #"-v, --verbose" globals)))
+      (is (nil? (re-find #"-h, --help" globals)))
+      (is (nil? (re-find #"--version" globals)))))
+
+  (testing "root help omits Global Options when the app has no global options"
+    (let [no-opts-app {:name "wtr"
+                       :version "0.1.0"
+                       :commands [{:name "ls"
+                                   :doc "List things."
+                                   :run create!}]}
+          text (cli/root-help no-opts-app)]
+      (is (some? (re-find #"wtr ls" text)))
+      (is (nil? (re-find #"Global Options:" text)))))
 
   (testing "command help renders command sections"
     (let [text (cli/command-help app "create")]
@@ -83,29 +107,28 @@
                :doc "Create a branch."}]})
 
 (deftest help-doc-alignment
-  (testing "command docs align to a shared column in root help"
+  (testing "usage docs align to a shared column across command and built-in rows"
     (let [lines (str/split (cli/root-help align-app) #"\n")
           row (fn [prefix] (first (filter #(str/starts-with? % prefix) lines)))
-          ls-line (row "  ls ")
-          cb-line (row "  create-branch")
-          help-line (row "  help [command]")]
-      ;; widest label is "help [command]" (14) => docs start at column 18
-      (is (= 18 (str/index-of ls-line "List things.")))
-      (is (= 18 (str/index-of cb-line "Create a branch.")))
-      (is (= 18 (str/index-of help-line "Show help.")))
-      ;; short label is padded: "ls" + 12 pad + 2 gutter = 14 spaces before doc
-      (is (some? (re-find #"^  ls {14}List things\.$" ls-line)))))
+          ls-line (row "  wtr ls")
+          cb-line (row "  wtr create-branch")
+          help-cmd-line (row "  wtr help [command]")
+          help-line (row "  wtr --help")
+          version-line (row "  wtr --version")]
+      ;; widest label is "wtr help [command]" (18) => docs start at column 22
+      (is (= 22 (str/index-of ls-line "List things.")))
+      (is (= 22 (str/index-of cb-line "Create a branch.")))
+      (is (= 22 (str/index-of help-cmd-line "Show help.")))
+      (is (= 22 (str/index-of help-line "Show help.")))
+      (is (= 22 (str/index-of version-line "Print version.")))
+      ;; short label is padded: "wtr ls" + 12 pad + 2 gutter = 14 spaces before doc
+      (is (some? (re-find #"^  wtr ls {14}List things\.$" ls-line)))))
 
-  (testing "option docs align to a shared column in root help"
-    (let [lines (str/split (cli/root-help align-app) #"\n")
-          row (fn [prefix] (first (filter #(str/starts-with? % prefix) lines)))
-          verbose-line (row "  -v, --verbose")
-          help-line (row "  -h, --help")
-          version-line (row "  --version")]
-      ;; widest label is "-v, --verbose" (13) => docs start at column 17
-      (is (= 17 (str/index-of verbose-line "Print executed commands.")))
-      (is (= 17 (str/index-of help-line "Show help.")))
-      (is (= 17 (str/index-of version-line "Print version."))))))
+  (testing "global options list only user-defined options"
+    (let [globals (section (cli/root-help align-app) "Global Options:")]
+      (is (some? (re-find #"-v, --verbose {2}Print executed commands\." globals)))
+      (is (nil? (re-find #"-h, --help" globals)))
+      (is (nil? (re-find #"--version" globals))))))
 
 (def bool-app
   {:name "pkg"
@@ -657,6 +680,10 @@
   (testing "command help renders the variadic placeholder"
     (let [text (cli/command-help run-app "run")]
       (is (some? (re-find #"\[CMD\.\.\.\]" text)))))
+
+  (testing "root help renders a compact variadic usage row"
+    (let [text (cli/root-help run-app)]
+      (is (some? (re-find #"wtr run <NAME> \[CMD\.\.\.\]" text)))))
 
   (testing "a :validate on the variadic is enforced"
     (let [vapp (assoc-in run-app [:commands 0 :variadic :validate]
