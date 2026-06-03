@@ -1,4 +1,4 @@
-# Compact Root Usage Implementation Plan
+# Compact Root Usage Implementation Plan ✅ Completed
 
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -127,7 +127,7 @@ Use focused rendering tests around `root-help`:
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Write failing root-help tests**
+- [x] **Step 1: Write failing root-help tests**
   Update `help-rendering` so `(cli/root-help app)` no longer expects
   `Commands:` and instead expects a compact command row matching
   `wtr create <BRANCH>`.
@@ -143,7 +143,7 @@ Use focused rendering tests around `root-help`:
     rather than searching the whole help text, since those built-ins should
     still appear in `Usage:`.
 
-- [ ] **Step 2: Add failing variadic and empty-global-options tests**
+- [x] **Step 2: Add failing variadic and empty-global-options tests**
   In the existing `variadic-args` test group or a nearby help-rendering test,
   assert `(cli/root-help run-app)` contains `wtr run <NAME> [CMD...]`.
 
@@ -155,12 +155,12 @@ Use focused rendering tests around `root-help`:
   labels such as `  wtr ls`, `  wtr create-branch`, and
   `  wtr help [command]`, rather than the old bare command labels.
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL because root help still renders the generic usage line and
   separate `Commands:` section.
 
-- [ ] **Step 4: Implement the root usage row helpers**
+- [x] **Step 4: Implement the root usage row helpers**
   In `src/tiny_cli/core.cljc`, add or refactor private helpers near the existing
   root built-in helpers:
   - A helper that returns `[compact-command-usage doc]` for each command by
@@ -173,7 +173,7 @@ Use focused rendering tests around `root-help`:
   Remove or stop using the old root `Commands:` built-in helper and root option
   built-in rows in root help.
 
-- [ ] **Step 5: Wire `root-help` to the new layout**
+- [x] **Step 5: Wire `root-help` to the new layout**
   Replace the hard-coded generic `Usage:` lines and the separate `Commands:`
   block with one aligned `Usage:` block:
   - User command usage rows first, in the app spec's command order.
@@ -182,19 +182,19 @@ Use focused rendering tests around `root-help`:
     exist.
   - Existing `footer-lines` remains last.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 7: Run full cross-target verification**
+- [x] **Step 7: Run full cross-target verification**
   Run: `lgx test-all`
   Expected: PASS across let-go, Clojure, and Babashka.
 
-- [ ] **Step 8: Check formatting**
+- [x] **Step 8: Check formatting**
   Run: `lgx fmt-check`
   Expected: clean. If it fails, run `lgx fmt` and then rerun `lgx fmt-check`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
   `git commit -m "Render compact command usage in root help"`
 
 ### Task 2: Update README Help Examples
@@ -202,7 +202,7 @@ Use focused rendering tests around `root-help`:
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the root-help example**
+- [x] **Step 1: Update the root-help example**
   In the "For the deploy example, root help looks like this" block, replace the
   old generic usage and `Commands:` sections with compact usage rows:
 
@@ -219,12 +219,12 @@ Use focused rendering tests around `root-help`:
 
   Keep the existing footer as the final block after `Global Options:`.
 
-- [ ] **Step 2: Verify README example against rendered output**
+- [x] **Step 2: Verify README example against rendered output**
   Use the deploy app spec in the README and compare the expected root-help block
   to the new `root-help` behavior. At minimum, verify the row labels and section
   order match the implementation.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "Update README root help example"`
 
 ## Verification
@@ -239,3 +239,37 @@ lgx fmt-check
 
 Expected final result: all tests pass, formatting is clean, root help has no
 `Commands:` section, and command-specific help remains unchanged.
+
+## Summary
+
+Both tasks are complete.
+
+**Task 1 — Rendering (`src/tiny_cli/core.cljc`, `test/tiny_cli/core_test.cljc`):**
+- `root-help` now assembles `Usage:` from aligned `[label doc]` rows: one
+  compact `command-usage-min` row per user command, followed by built-in rows
+  `<app> help [command]`, `<app> --help`, and (only when `:version` is set)
+  `<app> --version`.
+- The generic `[global options] <command> [args] [options]` grammar line and the
+  separate `Commands:` section are gone.
+- `Global Options:` lists only user-defined `(:opts app)` and is omitted entirely
+  when there are none.
+- Removed now-dead helpers: `command-row`, `root-option-built-in-rows`,
+  `root-command-built-in-rows`. Parsing, dispatch, validation, and `command-help`
+  are untouched (scope guard held — `command-help` still emits the full grammar
+  and its `-h, --help` built-in line).
+- Tests updated/added: compact command rows, compact variadic row
+  (`wtr run <NAME> [CMD...]`), built-in usage rows in `Usage:`, section-scoped
+  `Global Options:` assertions (via a new `section` test helper), omission of an
+  empty `Global Options:` block, and shared-column alignment across command and
+  built-in rows. Final suite: 10 tests, 191 assertions, 0 failures across let-go,
+  Clojure, and Babashka; `lgx fmt-check` clean.
+
+**Task 2 — Docs (`README.md`):** replaced the deploy root-help example with the
+new compact layout and verified it byte-for-byte against rendered `root-help`
+output (only difference was a trailing newline from the extraction).
+
+**Review note:** the codex second-opinion review raised one P2 — root `-h` is no
+longer surfaced in root help even though `parse` still accepts it. Per a user
+decision, we kept the plan's deliberate compact `<app> --help` row; `-h` still
+works and remains documented in command-specific help. No code change made for
+this finding.
