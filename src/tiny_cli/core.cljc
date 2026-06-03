@@ -49,23 +49,33 @@
        (when (contains? opt :default)
          (str " Default: " (:default opt)))))
 
-(defn- format-option
+(defn- pad-right
+  [s width]
+  (str s (apply str (repeat (- width (count s)) " "))))
+
+(defn- align-rows
+  "Render [label doc] pairs as indented rows with docs aligned to a shared
+   column (two-space gutter after the widest label). Rows without a doc emit
+   just the indented label, so no trailing whitespace."
+  [pairs]
+  (let [width (reduce max 0 (map (comp count first) pairs))]
+    (map (fn [[label doc]]
+           (if (seq doc)
+             (str "  " (pad-right label width) "  " doc)
+             (str "  " label)))
+         pairs)))
+
+(defn- option-row
   [opt]
-  (str "  " (option-label opt)
-       (when (seq (option-doc opt))
-         (str "  " (option-doc opt)))))
+  [(option-label opt) (option-doc opt)])
 
-(defn- format-arg
+(defn- arg-row
   [arg]
-  (str "  " (key-placeholder (:key arg))
-       (when (seq (:doc arg))
-         (str "  " (:doc arg)))))
+  [(key-placeholder (:key arg)) (:doc arg)])
 
-(defn- format-command-row
+(defn- command-row
   [command]
-  (str "  " (:name command)
-       (when (seq (:doc command))
-         (str "  " (:doc command)))))
+  [(:name command) (:doc command)])
 
 (defn- arg-placeholder
   [arg]
@@ -107,15 +117,15 @@
                            (when (:variadic command)
                              (variadic-placeholder (:variadic command)))]))))
 
-(defn- root-option-built-ins
+(defn- root-option-built-in-rows
   [app]
-  (concat ["  -h, --help  Show help."]
+  (concat [["-h, --help" "Show help."]]
           (when (:version app)
-            ["  --version  Print version."])))
+            [["--version" "Print version."]])))
 
-(defn- root-command-built-ins
+(defn- root-command-built-in-rows
   [app]
-  ["  help [command]  Show help."])
+  [["help [command]" "Show help."]])
 
 (defn- footer-lines
   [app]
@@ -478,11 +488,11 @@
              (str "  " (:name app) " --help")
              ""
              "Global Options:"]
-            (map format-option (:opts app))
-            (root-option-built-ins app)
+            (align-rows (concat (map option-row (:opts app))
+                                (root-option-built-in-rows app)))
             ["" "Commands:"]
-            (map format-command-row (:commands app))
-            (root-command-built-ins app)
+            (align-rows (concat (map command-row (:commands app))
+                                (root-command-built-in-rows app)))
             (footer-lines app))))
 
 (defn command-help
@@ -497,13 +507,13 @@
                (command-option-built-ins (:name app) (:name command))]
               (when (seq (arg-specs command))
                 (concat ["" "Args:"]
-                        (map format-arg (arg-specs command))))
+                        (align-rows (map arg-row (arg-specs command)))))
               (when (seq (:opts command))
                 (concat ["" "Options:"]
-                        (map format-option (:opts command))))
+                        (align-rows (map option-row (:opts command)))))
               (when (seq (:opts app))
                 (concat ["" "Global Options:"]
-                        (map format-option (:opts app))))))
+                        (align-rows (map option-row (:opts app)))))))
     (str "Unknown command: " command-name)))
 
 (defn- command-help-result

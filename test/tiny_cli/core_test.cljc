@@ -1,5 +1,7 @@
 (ns tiny-cli.core-test
   (:require #?(:lg [os])
+            #?(:lg [string :as str]
+               :default [clojure.string :as str])
             #?(:lg [test :as test :refer [deftest is testing run-tests]]
                :default [clojure.test :as test :refer [deftest is testing run-tests]])
             [tiny-cli.core :as cli]))
@@ -67,6 +69,43 @@
       (is (some? (re-find #"Global Options:" text)))
       (is (some? (re-find #"-v, --verbose" text)))
       (is (nil? (re-find #"--version" text))))))
+
+(def align-app
+  {:name "wtr"
+   :version "0.1.0"
+   :opts [{:key :verbose?
+           :short "v"
+           :long "verbose"
+           :doc "Print executed commands."}]
+   :commands [{:name "ls"
+               :doc "List things."}
+              {:name "create-branch"
+               :doc "Create a branch."}]})
+
+(deftest help-doc-alignment
+  (testing "command docs align to a shared column in root help"
+    (let [lines (str/split (cli/root-help align-app) #"\n")
+          row (fn [prefix] (first (filter #(str/starts-with? % prefix) lines)))
+          ls-line (row "  ls ")
+          cb-line (row "  create-branch")
+          help-line (row "  help [command]")]
+      ;; widest label is "help [command]" (14) => docs start at column 18
+      (is (= 18 (str/index-of ls-line "List things.")))
+      (is (= 18 (str/index-of cb-line "Create a branch.")))
+      (is (= 18 (str/index-of help-line "Show help.")))
+      ;; short label is padded: "ls" + 12 pad + 2 gutter = 14 spaces before doc
+      (is (some? (re-find #"^  ls {14}List things\.$" ls-line)))))
+
+  (testing "option docs align to a shared column in root help"
+    (let [lines (str/split (cli/root-help align-app) #"\n")
+          row (fn [prefix] (first (filter #(str/starts-with? % prefix) lines)))
+          verbose-line (row "  -v, --verbose")
+          help-line (row "  -h, --help")
+          version-line (row "  --version")]
+      ;; widest label is "-v, --verbose" (13) => docs start at column 17
+      (is (= 17 (str/index-of verbose-line "Print executed commands.")))
+      (is (= 17 (str/index-of help-line "Show help.")))
+      (is (= 17 (str/index-of version-line "Print version."))))))
 
 (def bool-app
   {:name "pkg"
