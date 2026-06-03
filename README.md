@@ -331,11 +331,11 @@ Usage:
 
 Global Options:
   -n, --dry-run  Print the deployment plan.
-  -h, --help  Show help.
-  --version  Print version.
+  -h, --help     Show help.
+  --version      Print version.
 
 Commands:
-  service  Deploy a service.
+  service         Deploy a service.
   help [command]  Show help.
 
 Run 'deploy <command> --help' for more information on a command.
