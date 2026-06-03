@@ -73,10 +73,6 @@
   [arg]
   [(key-placeholder (:key arg)) (:doc arg)])
 
-(defn- command-row
-  [command]
-  [(:name command) (:doc command)])
-
 (defn- arg-placeholder
   [arg]
   (str "<" (key-placeholder (:key arg)) ">"))
@@ -117,15 +113,20 @@
                            (when (:variadic command)
                              (variadic-placeholder (:variadic command)))]))))
 
-(defn- root-option-built-in-rows
+(defn- root-command-usage-rows
+  "Compact `[usage doc]` rows for user commands, e.g. `app create <BRANCH>`."
   [app]
-  (concat [["-h, --help" "Show help."]]
-          (when (:version app)
-            [["--version" "Print version."]])))
+  (map (fn [command]
+         [(command-usage-min app command) (:doc command)])
+       (:commands app)))
 
-(defn- root-command-built-in-rows
+(defn- root-usage-built-in-rows
+  "Compact `[usage doc]` rows for built-in help/version invocations."
   [app]
-  [["help [command]" "Show help."]])
+  (concat [[(str (:name app) " help [command]") "Show help."]
+           [(str (:name app) " --help") "Show help."]]
+          (when (:version app)
+            [[(str (:name app) " --version") "Print version."]])))
 
 (defn- footer-lines
   [app]
@@ -482,17 +483,12 @@
   (join-lines
     (concat [(summary-line (:name app) (:doc app))
              ""
-             "Usage:"
-             (str "  " (:name app) " [global options] <command> [args] [options]")
-             (str "  " (:name app) " help [command]")
-             (str "  " (:name app) " --help")
-             ""
-             "Global Options:"]
-            (align-rows (concat (map option-row (:opts app))
-                                (root-option-built-in-rows app)))
-            ["" "Commands:"]
-            (align-rows (concat (map command-row (:commands app))
-                                (root-command-built-in-rows app)))
+             "Usage:"]
+            (align-rows (concat (root-command-usage-rows app)
+                                (root-usage-built-in-rows app)))
+            (when (seq (:opts app))
+              (concat ["" "Global Options:"]
+                      (align-rows (map option-row (:opts app)))))
             (footer-lines app))))
 
 (defn command-help
