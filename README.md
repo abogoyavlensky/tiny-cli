@@ -325,18 +325,13 @@ For the deploy example, root help looks like this:
 deploy - Deploy one service.
 
 Usage:
-  deploy [global options] <command> [args] [options]
-  deploy help [command]
-  deploy --help
+  deploy service <SERVICE>  Deploy a service.
+  deploy help [command]     Show help.
+  deploy --help             Show help.
+  deploy --version          Print version.
 
 Global Options:
   -n, --dry-run  Print the deployment plan.
-  -h, --help     Show help.
-  --version      Print version.
-
-Commands:
-  service         Deploy a service.
-  help [command]  Show help.
 
 Run 'deploy <command> --help' for more information on a command.
 ```
