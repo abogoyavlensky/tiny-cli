@@ -1,6 +1,6 @@
 # Align Help Docs to a Shared Column Implementation Plan
 
-**Status:** Not started.
+**Status:** Completed.
 
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -134,7 +134,7 @@ long-label row, and a built-in row — proving alignment, not mere presence.
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Write the failing alignment test**
+- [x] **Step 1: Write the failing alignment test**
   In `core_test.cljc`, add a `clojure.string` require via reader conditional
   matching `core.cljc`'s pattern (`#?(:lg [string :as str] :default [clojure.string :as str])`).
   Define a local `align-app` with `:version` and at least two commands whose
@@ -154,12 +154,12 @@ long-label row, and a built-in row — proving alignment, not mere presence.
   a `Global Options:` section (e.g. a verbose option alongside the `-h, --help`
   and `--version` built-ins).
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
   Run: `lgx test`
   Expected: FAIL — docs are not yet aligned, so the index-equality and padded-row
   assertions fail.
 
-- [ ] **Step 3: Implement `pad-right`, `align-rows`, and the pair refactor**
+- [x] **Step 3: Implement `pad-right`, `align-rows`, and the pair refactor**
   Add `pad-right` and `align-rows` as designed. Replace `format-command-row`,
   `format-option`, `format-arg` with `command-row`, `option-row`, `arg-row`
   returning `[label doc]` pairs. Replace `root-option-built-ins` /
@@ -169,16 +169,16 @@ long-label row, and a built-in row — proving alignment, not mere presence.
   Leave `command-option-built-ins`, `summary-line`, parsing, and validation
   untouched.
 
-- [ ] **Step 4: Run the full cross-target suite**
+- [x] **Step 4: Run the full cross-target suite**
   Run: `lgx test-all`
   Expected: PASS on let-go, Clojure, and Babashka — the new alignment test plus
   all existing `re-find` help tests.
 
-- [ ] **Step 5: Check formatting**
+- [x] **Step 5: Check formatting**
   Run: `lgx fmt-check`
   Expected: clean (run `lgx fmt` to fix if needed).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git commit -m "Align help docs to a shared column"`
 
 ### Task 2: Update README help-output examples
@@ -186,7 +186,7 @@ long-label row, and a built-in row — proving alignment, not mere presence.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Re-align the root-help example output**
+- [x] **Step 1: Re-align the root-help example output**
   In the deploy root-help example (`README.md:332-339`), update the
   `Global Options:` and `Commands:` blocks to the aligned layout. Labels and
   their resulting columns:
@@ -206,12 +206,12 @@ long-label row, and a built-in row — proving alignment, not mere presence.
   The command-help example (`README.md:354-362`) has single-row sections, so its
   columns are unchanged — leave it as is.
 
-- [ ] **Step 2: Verify the README block matches real output**
+- [x] **Step 2: Verify the README block matches real output**
   Run: `lgx run` against the deploy example if available, or eyeball that each
   doc in the updated blocks starts at the column noted above.
   Expected: README output matches what `root-help` now renders.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "Update README help examples for aligned docs"`
 
 ## Verification
@@ -237,3 +237,40 @@ Expected:
   min/max column clamp.
 - Backwards compatible: same content, only inter-column spacing changes; loose
   `re-find` consumers are unaffected.
+
+## Completion Summary
+
+Implemented exactly as designed. Added two private helpers to
+`src/tiny_cli/core.cljc`: `pad-right` (cross-target space padding via
+`(apply str (repeat …))`, no interop) and `align-rows`, which pads every
+`[label doc]` pair's label to the section's widest label before a two-space
+gutter and emits just the indented label for doc-less rows. Replaced
+`format-command-row`/`format-option`/`format-arg` with `command-row`/
+`option-row`/`arg-row` returning pairs, and `root-option-built-ins`/
+`root-command-built-ins` with `*-built-in-rows` returning pairs. Routed every
+list section in `root-help` and `command-help` through `align-rows`. Width is
+computed per section, so Commands, Global Options, Options, and Args each align
+independently. `command-option-built-ins` (the usage line) was left untouched.
+
+Added a `help-doc-alignment` deftest in `test/tiny_cli/core_test.cljc` plus a
+`clojure.string` reader-conditional require. The test proves alignment by
+splitting `root-help` on `#"\n"`, locating short-label, long-label, and
+built-in rows, and asserting their docs share a column index (Commands at
+column 18, Global Options at 17), with a padded-row regex guarding the gutter
+math. Verified up front that let-go's `string` ns supports `split` (regex
+form), `starts-with?`, and `index-of` but not `split-lines`, so the test uses
+`(str/split text #"\n")`.
+
+Updated the README deploy root-help example (Global Options + Commands blocks)
+to the aligned layout, verified byte-for-byte against the program's actual
+rendered output. The command-help example is all single-row sections, so it was
+unchanged.
+
+Verification: `lgx test-all` passes on let-go, Clojure, and Babashka (10 tests,
+183 assertions, 0 failures); `lgx fmt-check` clean. The new alignment
+assertions failed as expected before implementation (5 failures) and pass after.
+A `review-with-codex` second-opinion review of the uncommitted code change
+returned no findings (codex independently ran the suite and fmt-check).
+
+Commits: `24999b5` (core + tests), `782b33f` (README). The plan itself was
+committed earlier as `7b06a3f`.
