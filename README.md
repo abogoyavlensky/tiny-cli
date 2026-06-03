@@ -326,8 +326,8 @@ deploy - Deploy one service.
 
 Usage:
   deploy service <SERVICE>  Deploy a service.
-  deploy help [command]     Show help.
-  deploy --help             Show help.
+  deploy help [command]     Show command help.
+  deploy --help             Show tool help.
   deploy --version          Print version.
 
 Global Options:
