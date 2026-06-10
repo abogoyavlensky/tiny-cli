@@ -171,19 +171,19 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 - Modify: `README.md`
 - Modify: `docs/initial_design.md`
 
-- [ ] **Step 1: Update `README.md`**
+- [x] **Step 1: Update `README.md`**
   - "Variadic Trailing Args": remove the wording that a command's `:opts` cannot combine with / appear after the variadic. State that a variadic command may declare `:opts`, which must precede its first positional, after which everything is slurped into the variadic vector.
   - Update the command-help example (the `deploy [global options] service <SERVICE> [options]` block near line 345) to the new order.
   - Reorder example invocations that put options after a positional (e.g. the `deploy --dry-run service api --env prod` example) into options-first form.
   - Add a short "Option ordering" note: options come before positionals in every command; built-ins (`--help/-h`, `--version/-v`) follow the same rule; `--` ends option parsing.
 
-- [ ] **Step 2: Update `docs/initial_design.md`**
+- [x] **Step 2: Update `docs/initial_design.md`**
   In "Parsing Behaviour", revise the "Global options can appear before or after the command" example and the "After command token: command options and global options are both accepted" rule to the options-before-positionals rule. Note that variadic commands may now declare options.
 
-- [ ] **Step 3: Re-read both docs for internal consistency**
+- [x] **Step 3: Re-read both docs for internal consistency**
   Confirm every code example obeys the new ordering and no stale "cannot combine" wording remains. Use /writing-clearly for the new prose.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
   `git commit -am "docs: document options-before-positionals ordering"`
 
 ## Task 5: Full cross-runtime verification

@@ -100,9 +100,8 @@ wtr -v list
 wtr list -v
 
 wtr create feature/login
-wtr create feature/login --base main
 wtr create --base main feature/login
-wtr -v create feature/login --base main
+wtr -v create --base main feature/login
 ```
 
 ## App Spec
@@ -396,7 +395,7 @@ Command handlers receive one map with three main sections:
 Example:
 
 ```bash
-wtr -v create feature/login --base main
+wtr -v create --base main feature/login
 ```
 
 Handler receives:
@@ -436,21 +435,27 @@ tool -v create item
 
 Command is `create`.
 
-Global options can appear before or after the command:
+A global option can appear before the command or after it, as long as it
+precedes the command's positional arguments:
 
 ```bash
 tool -v create item
-tool create item -v
+tool create -v item
 ```
+
+The first positional token ends option parsing; an option after it is an error.
 
 Command options are parsed only after the command is selected.
 
-If a flag name exists both globally and on the selected command, command-local parsing should take priority after the command token.
+If a flag name exists both globally and on the selected command, it is a spec
+error.
 
 Recommended rule for simplicity:
 
-- Before command token: only global options are parsed.
-- After command token: command options and global options are both accepted.
+- Before the command token: only global options are parsed.
+- After the command token and before the first positional: command and global
+  options are both accepted.
+- After the first positional: no options are parsed.
 - If the same option spelling exists in both places, it is a spec error.
 
 ### Supported Option Forms

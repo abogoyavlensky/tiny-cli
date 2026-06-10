@@ -114,7 +114,7 @@ command, one required positional arg, one command option, and one global flag.
 Example:
 
 ```bash
-lgx run -- --dry-run service api --env prod
+lgx run -- --dry-run service --env prod api
 ```
 
 Output:
@@ -127,7 +127,7 @@ Or build it and run binary:
 
 ```bash
 lgx build
-deploy --dry-run service api --env prod
+deploy --dry-run service --env prod api
 ```
 
 ## Expected App Spec
@@ -213,7 +213,7 @@ Handlers receive one map:
 For this command:
 
 ```bash
-deploy --dry-run service api --env prod
+deploy --dry-run service --env prod api
 ```
 
 The handler receives:
@@ -226,6 +226,25 @@ The handler receives:
 
 CLI values stay as raw strings. `tiny-cli` applies defaults, checks required
 options, and runs validation predicates, but it does not coerce types.
+
+## Option Ordering
+
+Options come before positional arguments. The first positional token ends
+option parsing for the command, so every token after it is a positional value:
+
+```bash
+deploy --dry-run service --env prod api   ; ok
+deploy service api --env prod             ; error: Options must appear before arguments: --env
+```
+
+Global options, command options, and the built-ins (`--help`, `-h`,
+`--version`, `-v`) all follow this rule. A global option may also sit before
+the command (`deploy --dry-run service ...`). Use `--` to end option parsing
+explicitly, which lets a positional value start with a dash:
+
+```bash
+deploy service -- --weird-name
+```
 
 ## Variadic Trailing Args
 
@@ -252,10 +271,11 @@ tool run feat-x                     ; :cmd []
 ```
 
 The variadic key lands in the handler's `:args` map alongside the fixed args.
-Constraints: the variadic must be the only one per command, and a command's own
-`:opts` cannot appear after the variadic begins (they are slurped into it) — put
-global options before the command. The fixed args remain required; omitting them
-is still a `Missing argument` error.
+Constraints: the variadic must be the only one per command. A command may
+declare its own `:opts`, but every option — global or command — must come
+before the first positional; once the fixed args start, every remaining token
+is slurped into the variadic vector. The fixed args remain required; omitting
+them is still a `Missing argument` error.
 
 ## Running Under lgx (`--` and `LGX_RUN`)
 
@@ -342,7 +362,7 @@ Command help looks like this:
 deploy service <SERVICE> - Deploy a service.
 
 Usage:
-  deploy [global options] service <SERVICE> [options]
+  deploy [global options] service [options] <SERVICE>
   deploy help service
   deploy service -h, --help  Show help for service.
 
