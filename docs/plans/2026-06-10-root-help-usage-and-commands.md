@@ -87,7 +87,7 @@ Testing should focus on `root-help`:
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Update the focused root-help tests**
+- [x] **Step 1: Update the focused root-help tests**
   In `test/tiny_cli/core_test.cljc`, change the root help expectations so
   `(cli/root-help app)` must contain:
 
@@ -100,18 +100,18 @@ Testing should focus on `root-help`:
   Remove or invert the existing assertion that root help omits `Commands:`.
   Keep the `Global Options:` assertions scoped to the `Global Options:` block.
 
-- [ ] **Step 2: Update the alignment test labels**
+- [x] **Step 2: Update the alignment test labels**
   In `help-doc-alignment`, rename the test description from usage alignment to
   command alignment. Keep the row-level assertions for `wtr ls`,
   `wtr create-branch`, `wtr help [command]`, `wtr --help`, and
   `wtr --version`.
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL because `root-help` still renders compact command rows under
   `Usage:` and does not render a `Commands:` heading.
 
-- [ ] **Step 4: Implement the root-help layout**
+- [x] **Step 4: Implement the root-help layout**
   In `src/tiny_cli/core.cljc`, update `root-help` so it renders:
 
   - Summary line.
@@ -127,19 +127,19 @@ Testing should focus on `root-help`:
 
   Keep `command-help` unchanged.
 
-- [ ] **Step 5: Run focused verification**
+- [x] **Step 5: Run focused verification**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 6: Run full verification**
+- [x] **Step 6: Run full verification**
   Run: `lgx test-all`
   Expected: PASS across let-go, Clojure, and Babashka.
 
-- [ ] **Step 7: Check formatting**
+- [x] **Step 7: Check formatting**
   Run: `lgx fmt-check`
   Expected: PASS. If it fails, run `lgx fmt`, then rerun `lgx fmt-check`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
   Run: `git commit -am "Split root help usage and commands"`
 
 ### Task 2: Update README Root Help Example

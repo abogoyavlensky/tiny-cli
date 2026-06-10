@@ -480,7 +480,10 @@
   (join-lines
     (concat [(summary-line (:name app) (:doc app))
              ""
-             "Usage:"]
+             "Usage:"
+             (str "  " (:name app) " [global options] <command> [options] [args]")
+             ""
+             "Commands:"]
             (align-rows (concat (root-command-usage-rows app)
                                 (root-usage-built-in-rows app)))
             (when (seq (:opts app))

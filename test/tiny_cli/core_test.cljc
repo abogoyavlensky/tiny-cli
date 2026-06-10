@@ -53,19 +53,20 @@
       (is (= "wtr 0.1.0" (:text result))))))
 
 (deftest help-rendering
-  (testing "root help renders compact usage and a user-only global options block"
+  (testing "root help renders a usage grammar, commands, and a user-only global options block"
     (let [text (cli/root-help app)
+          commands (section text "Commands:")
+          commands-text (or commands "")
           globals (section text "Global Options:")]
       (is (some? (re-find #"Small git worktree helper\." text)))
-      (is (some? (re-find #"Usage:" text)))
-      ;; compact command usage row replaces the generic grammar + Commands list
+      (is (some? (re-find #"\n\nUsage:\n  wtr \[global options\] <command> \[options\] \[args\]\n\nCommands:" text)))
       (is (nil? (re-find #"wtr \[global options\] <command> \[args\] \[options\]" text)))
-      (is (nil? (re-find #"Commands:" text)))
-      (is (some? (re-find #"wtr create <BRANCH>  Create a worktree for a branch\." text)))
-      ;; built-in usage rows live in Usage:, not in Global Options:
-      (is (some? (re-find #"wtr help \[command\]" text)))
-      (is (some? (re-find #"wtr --help" text)))
-      (is (some? (re-find #"wtr --version" text)))
+      (is (some? commands))
+      (is (some? (re-find #"wtr create <BRANCH>  Create a worktree for a branch\." commands-text)))
+      ;; built-in rows live in Commands:, not in Global Options:
+      (is (some? (re-find #"wtr help \[command\]" commands-text)))
+      (is (some? (re-find #"wtr --help" commands-text)))
+      (is (some? (re-find #"wtr --version" commands-text)))
       ;; Global Options: lists only user-defined options
       (is (some? (re-find #"-v, --verbose" globals)))
       (is (nil? (re-find #"-h, --help" globals)))
@@ -110,7 +111,7 @@
                :doc "Create a branch."}]})
 
 (deftest help-doc-alignment
-  (testing "usage docs align to a shared column across command and built-in rows"
+  (testing "command docs align to a shared column across command and built-in rows"
     (let [lines (str/split (cli/root-help align-app) #"\n")
           row (fn [prefix] (first (filter #(str/starts-with? % prefix) lines)))
           ls-line (row "  wtr ls")
