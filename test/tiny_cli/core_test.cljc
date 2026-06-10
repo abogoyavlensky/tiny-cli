@@ -84,6 +84,9 @@
   (testing "command help renders command sections"
     (let [text (cli/command-help app "create")]
       (is (some? (re-find #"wtr create <BRANCH>" text)))
+      ;; full usage line puts options before the positional arg
+      (is (some? (re-find #"create \[options\] <BRANCH>" text)))
+      (is (nil? (re-find #"create <BRANCH> \[options\]" text)))
       (is (some? (re-find #"Create a worktree for a branch\." text)))
       (is (some? (re-find #"Args:" text)))
       (is (some? (re-find #"BRANCH" text)))
@@ -151,21 +154,22 @@
       (is (= {:verbose? true} (get-in result [:context :global])))
       (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
-  (testing "parses global option after command"
-    (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+  (testing "parses global option after command, before the positional"
+    (let [result (cli/parse app ["create" "-v" "feature/login"])]
       (is (= :ok (:status result)))
-      (is (= {:verbose? true} (get-in result [:context :global])))))
+      (is (= {:verbose? true} (get-in result [:context :global])))
+      (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
-  (testing "parses command option before and after positional args"
+  (testing "parses command option before the positional; rejects it after"
     (let [before (cli/parse app ["create" "--base" "main" "feature/login"])
           after (cli/parse app ["create" "feature/login" "--base" "main"])]
       (is (= :ok (:status before)))
       (is (= "main" (get-in before [:context :opts :base])))
-      (is (= :ok (:status after)))
-      (is (= "main" (get-in after [:context :opts :base])))))
+      (is (= :error (:status after)))
+      (is (some? (re-find #"Options must appear before" (:message after))))))
 
   (testing "parses long value option with equals"
-    (let [result (cli/parse app ["create" "feature/login" "--base=main"])]
+    (let [result (cli/parse app ["create" "--base=main" "feature/login"])]
       (is (= :ok (:status result)))
       (is (= "main" (get-in result [:context :opts :base])))))
 
@@ -213,14 +217,19 @@
       (is (some? (re-find #"Option conflict" (:message result))))))
 
   (testing "unknown option is an error"
-    (let [result (cli/parse app ["create" "feature/login" "--unknown"])]
+    (let [result (cli/parse app ["create" "--unknown" "feature/login"])]
       (is (= :error (:status result)))
       (is (some? (re-find #"Unknown option" (:message result))))))
 
   (testing "missing option value is an error"
-    (let [result (cli/parse app ["create" "feature/login" "--base"])]
+    (let [result (cli/parse app ["create" "--base"])]
       (is (= :error (:status result)))
       (is (some? (re-find #"Missing value" (:message result))))))
+
+  (testing "rejects an option after a positional arg"
+    (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Options must appear before arguments" (:message result))))))
 
   (testing "end-of-options treats following values as positional"
     (let [literal-app {:name "lit"
@@ -282,9 +291,9 @@
                                          :validate {:pred non-blank?
                                                     :msg "BASE is required."}}]
                                  :run create!}]}
-          ok (cli/parse valid-app ["branch" "feature" "--base" "main"])
-          bad-arg (cli/parse valid-app ["branch" "" "--base" "main"])
-          bad-opt (cli/parse valid-app ["branch" "feature" "--base" ""])]
+          ok (cli/parse valid-app ["branch" "--base" "main" "feature"])
+          bad-arg (cli/parse valid-app ["branch" "--base" "main" ""])
+          bad-opt (cli/parse valid-app ["branch" "--base" "" "feature"])]
       (is (= :ok (:status ok)))
       (is (= :error (:status bad-arg)))
       (is (= "NAME is required." (:message bad-arg)))
@@ -644,6 +653,19 @@
                           :doc "Command to run; omit for a shell."}
                :run (fn [_] :ran)}]})
 
+(def run-opts-app
+  (assoc-in run-app [:commands 0 :opts]
+            [{:key :detach?
+              :short "d"
+              :long "detach"
+              :doc "Detach."}]))
+
+(def exec-app
+  {:name "x"
+   :commands [{:name "exec"
+               :variadic {:key :cmd}
+               :run (fn [_] :ran)}]})
+
 (deftest variadic-args
   (testing "collects trailing tokens into a vector"
     (let [result (cli/parse run-app ["run" "feat-x" "npm" "test"])]
@@ -681,6 +703,10 @@
     (let [text (cli/command-help run-app "run")]
       (is (some? (re-find #"\[CMD\.\.\.\]" text)))))
 
+  (testing "command help puts options before the variadic args"
+    (let [text (cli/command-help run-opts-app "run")]
+      (is (some? (re-find #"run \[options\] <NAME> \[CMD\.\.\.\]" text)))))
+
   (testing "root help renders a compact variadic usage row"
     (let [text (cli/root-help run-app)]
       (is (some? (re-find #"wtr run <NAME> \[CMD\.\.\.\]" text)))))
@@ -695,14 +721,33 @@
       (is (= :error (:status bad)))
       (is (some? (re-find #"command is required" (:message bad))))))
 
-  (testing "a command cannot declare both :variadic and :opts"
-    (let [bad-app (assoc-in run-app [:commands 0 :opts]
-                            [{:key :force?
-                              :short "f"
-                              :long "force"}])
-          result (cli/parse bad-app ["run" "feat-x"])]
+  (testing "a variadic command may declare options before the fixed arg"
+    (let [result (cli/parse run-opts-app ["run" "-d" "feat-x" "git" "status"])]
+      (is (= :ok (:status result)))
+      (is (= {:detach? true} (get-in result [:context :opts])))
+      (is (= "feat-x" (get-in result [:context :args :name])))
+      (is (= ["git" "status"] (get-in result [:context :args :cmd])))))
+
+  (testing "an option after the fixed arg is part of the variadic payload"
+    (let [result (cli/parse run-opts-app ["run" "feat-x" "-d" "echo"])]
+      (is (= :ok (:status result)))
+      (is (= {} (get-in result [:context :opts])))
+      (is (= ["-d" "echo"] (get-in result [:context :args :cmd])))))
+
+  (testing "a variadic-only command collects a non-option leading token"
+    (let [result (cli/parse exec-app ["exec" "ls" "-la"])]
+      (is (= :ok (:status result)))
+      (is (= ["ls" "-la"] (get-in result [:context :args :cmd])))))
+
+  (testing "a variadic-only command reads a leading option as an option"
+    (let [result (cli/parse exec-app ["exec" "-la"])]
       (is (= :error (:status result)))
-      (is (some? (re-find #":variadic" (:message result)))))))
+      (is (some? (re-find #"Unknown option" (:message result))))))
+
+  (testing "-- passes a leading dash token into a variadic-only command"
+    (let [result (cli/parse exec-app ["exec" "--" "-la"])]
+      (is (= :ok (:status result)))
+      (is (= ["-la"] (get-in result [:context :args :cmd]))))))
 
 #?(:lg
    (do)
