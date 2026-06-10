@@ -6,6 +6,8 @@
 
 **Tech Stack:** Clojure `.cljc` for let-go, Clojure, and Babashka, tested with `lgx test` and `lgx test-all`.
 
+**Status:** Completed 2026-06-10 - see the Implementation Summary at the end.
+
 ---
 
 ## Design
@@ -178,8 +180,25 @@ Testing should focus on `root-help`:
 
 ## Final Verification
 
-- [ ] Run `lgx test-all`.
-- [ ] Run `lgx fmt-check`.
-- [ ] Confirm root help uses `Usage:` for the generic grammar and `Commands:`
+- [x] Run `lgx test-all`.
+- [x] Run `lgx fmt-check`.
+- [x] Confirm root help uses `Usage:` for the generic grammar and `Commands:`
   for compact command rows.
-- [ ] Confirm command help remains unchanged.
+- [x] Confirm command help remains unchanged.
+
+## Implementation Summary
+
+Implemented as planned.
+
+- `root-help` now renders a one-line `Usage:` grammar before a `Commands:`
+  section.
+- Existing compact command rows and built-in rows now live under `Commands:`
+  with the same alignment behavior as before.
+- Updated root-help tests for the new section split and preserved command-help
+  coverage.
+- Updated the README deploy example to match rendered output.
+- Verification passed with `lgx test-all`, `lgx fmt-check`, and an explicit
+  output-shape check for root help and command help.
+
+Codex review checkpoints completed. Task 1 reported README documentation drift,
+which Task 2 fixed. Task 2 reported no issues.
