@@ -265,8 +265,8 @@ If `:value?` is missing or false, the option is boolean.
 Accepted usage:
 
 ```bash
-tool remove item --force
-tool remove item -f
+tool remove --force item
+tool remove -f item
 ```
 
 Handler receives:
@@ -289,9 +289,9 @@ If `:value? true`, the option requires a value.
 Accepted usage:
 
 ```bash
-tool create branch --base main
-tool create branch --base=main
-tool create branch -b main
+tool create --base main branch
+tool create --base=main branch
+tool create -b main branch
 ```
 
 Handler receives:

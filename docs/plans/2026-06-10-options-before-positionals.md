@@ -2,6 +2,8 @@
 
 > **For agentic workers:** Use executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** ✅ Completed 2026-06-10 — see the Implementation Summary at the end.
+
 **Goal:** Make command and global options come before positional arguments in every command, so a single ordering rule applies everywhere and variadic commands can finally carry their own options.
 
 **Tech Stack:** `let-go` / Clojure / Babashka (`.cljc`), tested via `lgx test` (let-go) and `lgx test-all` (all three runtimes).
@@ -188,16 +190,16 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 
 ## Task 5: Full cross-runtime verification
 
-- [ ] **Step 1: Format**
+- [x] **Step 1: Format**
   Run: `lgx fmt`
-  Expected: no changes (or commit them).
+  Expected: no changes (or commit them). — no changes; formatting applied per-task.
 
-- [ ] **Step 2: Run the full suite on all runtimes**
+- [x] **Step 2: Run the full suite on all runtimes**
   Run: `lgx test-all`
-  Expected: PASS on let-go, Clojure, and Babashka.
+  Expected: PASS on let-go, Clojure, and Babashka. — let-go 10 tests / 208 assertions, Clojure and Babashka 0 failures.
 
-- [ ] **Step 3: Commit any remaining changes**
-  `git commit -am "test: verify options-first across runtimes"` (only if Step 1 produced changes).
+- [x] **Step 3: Commit any remaining changes**
+  Committed the final-review doc fix (`initial_design.md` "Accepted usage" examples) and this plan's completion notes.
 
 ---
 
@@ -207,3 +209,29 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 - a `tiny-cli` dep-sha bump,
 - usage-string fixes for the breaking change (`wtr create --from X <NAME>`, `wtr remove --force <NAME>`),
 - optionally, giving `run` its own options now that variadic + opts is allowed.
+
+---
+
+## Implementation Summary
+
+All five tasks landed; the full cross-runtime suite is green (let-go: 10 tests / 208 assertions, Clojure and Babashka: 0 failures, 0 errors).
+
+**What shipped**
+- `parse` now runs an options-first state machine (`:options` → `:args` → `:args-raw`), collapsing the former greedy-variadic, `--`, and per-token positional branches into one slurp path. An option-like token after a positional on a non-variadic command raises `Options must appear before arguments: <token>`, preventing the silent footgun where a stray `--flag` became a fixed-arg value.
+- The `:variadic` + `:opts` spec ban is removed: a variadic command may declare options, which must precede the first positional. Everything after the first positional is slurped into the variadic vector.
+- `command-usage` renders `[options]` before the positional/variadic placeholders, matching the grammar.
+- Docs: README gains an "Option Ordering" section; the variadic section, command-help example, and example invocations are updated, as are the `initial_design.md` parsing rules and usage examples.
+
+**Commits**
+- `feat: parse command options before positional args`
+- `feat: allow variadic commands to declare options`
+- `feat: render options before args in command usage`
+- `docs: document options-before-positionals ordering`
+- final review doc fix + this summary
+
+**Review notes (codex second opinion)**
+- Variadic-only commands no longer slurp a leading `-la` without `--`. This is the intended consequence of options-first (so variadic commands can carry options), locked by tests and documented; use `cmd -- -la` to pass a leading dash.
+- Two codex findings about the help usage string were resolved by Task 3.
+- A P3 finding (trailing-option examples in `initial_design.md` "Accepted usage" blocks) was fixed in the final pass.
+
+**Breaking change:** trailing-option forms (`create NAME --base main`, `create NAME --help`) now error. Pre-1.0; the `wtr` consumer is updated separately (see Out of Scope).
