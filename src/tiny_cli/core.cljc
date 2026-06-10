@@ -347,9 +347,6 @@
     (first-duplicate-key (:opts command))
     (error-result (str "Duplicate option key: " (first-duplicate-key (:opts command))))
 
-    (and (:variadic command) (seq (:opts command)))
-    (error-result (str "Command :variadic cannot be combined with :opts: " (:name command)))
-
     (not (option-spellings-valid? (:opts command)))
     (error-result "Option requires :short or :long.")
 

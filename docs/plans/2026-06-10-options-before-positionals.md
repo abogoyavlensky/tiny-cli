@@ -119,24 +119,24 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Replace the ban test with capability tests** (in `deftest variadic-args`)
+- [x] **Step 1: Replace the ban test with capability tests** (in `deftest variadic-args`)
   - Delete "a command cannot declare both :variadic and :opts" (`:698-705`).
   - Add a `run-app` variant whose `run` command also has `:opts [{:key :detach? :short "d" :long "detach"}]`.
   - Add "parses an option before the variadic fixed arg": `["run" "-d" "feat-x" "git" "status"]` → `:ok`, `:opts {:detach? true}`, `:args {:name "feat-x" :cmd ["git" "status"]}`.
   - Add "an option after the fixed arg is part of the command": `["run" "feat-x" "-d" "echo"]` → `:ok`, `:opts` has no `:detach?`, `:cmd ["-d" "echo"]`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — the spec ban rejects `:opts` on a variadic command.
 
-- [ ] **Step 3: Remove the ban**
+- [x] **Step 3: Remove the ban**
   Delete the `(and (:variadic command) (seq (:opts command)))` clause and its `error-result` from `command-spec-error` (`core.cljc:350-351`).
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "feat: allow variadic commands to declare options"`
 

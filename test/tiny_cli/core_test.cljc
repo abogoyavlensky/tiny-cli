@@ -650,6 +650,19 @@
                           :doc "Command to run; omit for a shell."}
                :run (fn [_] :ran)}]})
 
+(def run-opts-app
+  (assoc-in run-app [:commands 0 :opts]
+            [{:key :detach?
+              :short "d"
+              :long "detach"
+              :doc "Detach."}]))
+
+(def exec-app
+  {:name "x"
+   :commands [{:name "exec"
+               :variadic {:key :cmd}
+               :run (fn [_] :ran)}]})
+
 (deftest variadic-args
   (testing "collects trailing tokens into a vector"
     (let [result (cli/parse run-app ["run" "feat-x" "npm" "test"])]
@@ -701,14 +714,33 @@
       (is (= :error (:status bad)))
       (is (some? (re-find #"command is required" (:message bad))))))
 
-  (testing "a command cannot declare both :variadic and :opts"
-    (let [bad-app (assoc-in run-app [:commands 0 :opts]
-                            [{:key :force?
-                              :short "f"
-                              :long "force"}])
-          result (cli/parse bad-app ["run" "feat-x"])]
+  (testing "a variadic command may declare options before the fixed arg"
+    (let [result (cli/parse run-opts-app ["run" "-d" "feat-x" "git" "status"])]
+      (is (= :ok (:status result)))
+      (is (= {:detach? true} (get-in result [:context :opts])))
+      (is (= "feat-x" (get-in result [:context :args :name])))
+      (is (= ["git" "status"] (get-in result [:context :args :cmd])))))
+
+  (testing "an option after the fixed arg is part of the variadic payload"
+    (let [result (cli/parse run-opts-app ["run" "feat-x" "-d" "echo"])]
+      (is (= :ok (:status result)))
+      (is (= {} (get-in result [:context :opts])))
+      (is (= ["-d" "echo"] (get-in result [:context :args :cmd])))))
+
+  (testing "a variadic-only command collects a non-option leading token"
+    (let [result (cli/parse exec-app ["exec" "ls" "-la"])]
+      (is (= :ok (:status result)))
+      (is (= ["ls" "-la"] (get-in result [:context :args :cmd])))))
+
+  (testing "a variadic-only command reads a leading option as an option"
+    (let [result (cli/parse exec-app ["exec" "-la"])]
       (is (= :error (:status result)))
-      (is (some? (re-find #":variadic" (:message result)))))))
+      (is (some? (re-find #"Unknown option" (:message result))))))
+
+  (testing "-- passes a leading dash token into a variadic-only command"
+    (let [result (cli/parse exec-app ["exec" "--" "-la"])]
+      (is (= :ok (:status result)))
+      (is (= ["-la"] (get-in result [:context :args :cmd]))))))
 
 #?(:lg
    (do)
