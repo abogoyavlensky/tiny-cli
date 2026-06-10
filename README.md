@@ -345,6 +345,9 @@ For the deploy example, root help looks like this:
 deploy - Deploy one service.
 
 Usage:
+  deploy [global options] <command> [options] [args]
+
+Commands:
   deploy service <SERVICE>  Deploy a service.
   deploy help [command]     Show a command help.
   deploy --help             Show the tool help.

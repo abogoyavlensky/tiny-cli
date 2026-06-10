@@ -147,7 +147,7 @@ Testing should focus on `root-help`:
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the root-help example**
+- [x] **Step 1: Update the root-help example**
   In the "For the deploy example, root help looks like this" block, change the
   output to:
 
@@ -169,11 +169,11 @@ Testing should focus on `root-help`:
   Run 'deploy <command> --help' for more information on a command.
   ```
 
-- [ ] **Step 2: Compare docs against rendered output**
+- [x] **Step 2: Compare docs against rendered output**
   After Task 1, use the deploy app spec in the README as the reference and check
   that the section order, labels, and spacing match `root-help`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   Run: `git commit -am "Update README root help example"`
 
 ## Final Verification
