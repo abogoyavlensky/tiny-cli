@@ -84,6 +84,9 @@
   (testing "command help renders command sections"
     (let [text (cli/command-help app "create")]
       (is (some? (re-find #"wtr create <BRANCH>" text)))
+      ;; full usage line puts options before the positional arg
+      (is (some? (re-find #"create \[options\] <BRANCH>" text)))
+      (is (nil? (re-find #"create <BRANCH> \[options\]" text)))
       (is (some? (re-find #"Create a worktree for a branch\." text)))
       (is (some? (re-find #"Args:" text)))
       (is (some? (re-find #"BRANCH" text)))
@@ -699,6 +702,10 @@
   (testing "command help renders the variadic placeholder"
     (let [text (cli/command-help run-app "run")]
       (is (some? (re-find #"\[CMD\.\.\.\]" text)))))
+
+  (testing "command help puts options before the variadic args"
+    (let [text (cli/command-help run-opts-app "run")]
+      (is (some? (re-find #"run \[options\] <NAME> \[CMD\.\.\.\]" text)))))
 
   (testing "root help renders a compact variadic usage row"
     (let [text (cli/root-help run-app)]

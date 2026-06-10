@@ -146,22 +146,22 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Add usage-order assertions**
+- [x] **Step 1: Add usage-order assertions**
   - In `deftest help-rendering` (or alongside the existing command-help assertion near `:472`), assert the full command-usage line places options before the arg, e.g. the `create` command help contains `create [options] <BRANCH>`.
   - In `deftest variadic-args`, assert the `run` command help contains `run [options] <NAME> [CMD...]`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `[options]` currently renders last.
 
-- [ ] **Step 3: Reorder `command-usage`**
+- [x] **Step 3: Reorder `command-usage`**
   In `command-usage` (`core.cljc:90-103`), move the `(when (seq (:opts command)) "[options]")` segment to sit immediately after the command name and before the args/variadic placeholders.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "feat: render options before args in command usage"`
 

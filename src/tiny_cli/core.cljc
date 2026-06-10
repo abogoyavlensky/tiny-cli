@@ -95,12 +95,12 @@
                            (when (seq (:opts app))
                              "[global options]")
                            (:name command)
+                           (when (seq (:opts command))
+                             "[options]")
                            (when (seq args)
                              (str/join " " args))
                            (when (:variadic command)
-                             (variadic-placeholder (:variadic command)))
-                           (when (seq (:opts command))
-                             "[options]")]))))
+                             (variadic-placeholder (:variadic command)))]))))
 
 (defn- command-usage-min
   [app command]
