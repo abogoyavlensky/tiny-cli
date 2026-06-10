@@ -530,18 +530,23 @@
              command nil
              state {:global {}
                     :opts {}
-                    :positionals []}]
+                    :positionals []
+                    :phase :options}]
         (if (seq tokens)
           (let [token (first tokens)
                 more (vec (rest tokens))]
             (cond
-              ;; Greedy variadic: once the command's fixed args are filled,
-              ;; slurp every remaining token verbatim — including option-like
-              ;; tokens and a literal `--` — into the variadic vector.
-              (and command
-                   (:variadic command)
-                   (>= (count (:positionals state)) (count (:args command))))
-              (recur more command (update state :positionals conj token))
+              ;; Arguments phase: every remaining token is positional, taken
+              ;; verbatim. `:args` (entered at the first positional) rejects an
+              ;; option-like token on a non-variadic command; `:args-raw`
+              ;; (entered via `--`) never rejects; a variadic command slurps
+              ;; option-like tokens into its trailing vector either way.
+              (not= :options (:phase state))
+              (if (and (= :args (:phase state))
+                       (not (:variadic command))
+                       (option-token? token))
+                (error-result (str "Options must appear before arguments: " token))
+                (recur more command (update state :positionals conj token)))
 
               (= "--version" token)
               (version-available app)
@@ -572,10 +577,8 @@
                :command nil
                :text (root-help app)}
 
-              (= "--" token)
-              (if command
-                (recur [] command (assoc state :positionals (vec (concat (:positionals state) more))))
-                (error-result "Unexpected end-of-options before command."))
+              (and (nil? command) (= "--" token))
+              (error-result "Unexpected end-of-options before command.")
 
               (and (nil? command) (option-token? token))
               (let [parsed (parse-option-token state token more global-longs global-shorts)]
@@ -591,6 +594,10 @@
                     spec-error
                     (recur more selected state)))
                 (error-result (str "Unknown command: " token)))
+
+              ;; Command selected, still in the options phase: `--` ends options.
+              (= "--" token)
+              (recur more command (assoc state :phase :args-raw))
 
               (option-token? token)
               (let [all-longs (merge (target-index :global (:opts app) long-index)
@@ -614,8 +621,11 @@
                   :else
                   (recur (:tokens parsed) command (:state parsed))))
 
+              ;; First positional token: enter the arguments phase and collect.
               :else
-              (recur more command (assoc state :positionals (conj (:positionals state) token)))))
+              (recur more command (-> state
+                                      (assoc :phase :args)
+                                      (update :positionals conj token)))))
           (if command
             (let [context (finalize-context app command state)]
               (if (= :error (:status context))

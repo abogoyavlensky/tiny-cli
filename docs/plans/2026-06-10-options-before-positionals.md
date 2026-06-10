@@ -88,7 +88,7 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Update and add the failing tests** (in `deftest option-parsing`)
+- [x] **Step 1: Update and add the failing tests** (in `deftest option-parsing`)
   - Rewrite "parses global option after command" (`:154-157`): keep a valid case where the global flag sits after the command but **before** the positional — `["create" "-v" "feature/login"]` → `:ok`, `:global {:verbose? true}`.
   - Rewrite "parses command option before and after positional args" (`:159-165`): assert the **before** form `["create" "--base" "main" "feature/login"]` is `:ok` with `:base "main"`, and that the **after** form `["create" "feature/login" "--base" "main"]` is now `:error` matching `#"Options must appear before"`.
   - Rewrite "parses long value option with equals" (`:167-170`) to options-first: `["create" "--base=main" "feature/login"]`.
@@ -98,18 +98,18 @@ Unit tests drive `cli/parse` directly (pure, no exit). Fast loop: `lgx test` (le
   - Leave "end-of-options treats following values as positional" (`:225-233`) as-is (covers `:args-raw`).
   - Add "rejects an option after a positional": `["create" "feature/login" "--base" "main"]` → `:error`, `#"Options must appear before arguments"`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — rewritten/added cases don't match current free-ordering behavior.
 
-- [ ] **Step 3: Implement the `:phase` machine**
+- [x] **Step 3: Implement the `:phase` machine**
   In `parse`, add `:phase :options` to the initial loop state. Restructure the loop so positional collection flows through a single slurp branch placed first: when phase is `:args`/`:args-raw`, append the token verbatim to `:positionals`, except that phase `:args` on a non-variadic command raises `Options must appear before arguments: <token>` for an option-like token. In the command-selected `:options` branch, add the two transitions: `--` → set phase `:args-raw` (drop the marker); first non-option token → set phase `:args` and collect it. Keep the `:variadic`+`:opts` ban untouched in this task. Remove the now-dead greedy-variadic branch, the `--` dump branch, and the trailing per-token positional branch.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS (all of `deftest option-parsing`, plus the existing `variadic-args` and `command-args-defaults-and-validation` still green).
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "feat: parse command options before positional args"`
 

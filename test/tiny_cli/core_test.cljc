@@ -151,21 +151,22 @@
       (is (= {:verbose? true} (get-in result [:context :global])))
       (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
-  (testing "parses global option after command"
-    (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+  (testing "parses global option after command, before the positional"
+    (let [result (cli/parse app ["create" "-v" "feature/login"])]
       (is (= :ok (:status result)))
-      (is (= {:verbose? true} (get-in result [:context :global])))))
+      (is (= {:verbose? true} (get-in result [:context :global])))
+      (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
-  (testing "parses command option before and after positional args"
+  (testing "parses command option before the positional; rejects it after"
     (let [before (cli/parse app ["create" "--base" "main" "feature/login"])
           after (cli/parse app ["create" "feature/login" "--base" "main"])]
       (is (= :ok (:status before)))
       (is (= "main" (get-in before [:context :opts :base])))
-      (is (= :ok (:status after)))
-      (is (= "main" (get-in after [:context :opts :base])))))
+      (is (= :error (:status after)))
+      (is (some? (re-find #"Options must appear before" (:message after))))))
 
   (testing "parses long value option with equals"
-    (let [result (cli/parse app ["create" "feature/login" "--base=main"])]
+    (let [result (cli/parse app ["create" "--base=main" "feature/login"])]
       (is (= :ok (:status result)))
       (is (= "main" (get-in result [:context :opts :base])))))
 
@@ -213,14 +214,19 @@
       (is (some? (re-find #"Option conflict" (:message result))))))
 
   (testing "unknown option is an error"
-    (let [result (cli/parse app ["create" "feature/login" "--unknown"])]
+    (let [result (cli/parse app ["create" "--unknown" "feature/login"])]
       (is (= :error (:status result)))
       (is (some? (re-find #"Unknown option" (:message result))))))
 
   (testing "missing option value is an error"
-    (let [result (cli/parse app ["create" "feature/login" "--base"])]
+    (let [result (cli/parse app ["create" "--base"])]
       (is (= :error (:status result)))
       (is (some? (re-find #"Missing value" (:message result))))))
+
+  (testing "rejects an option after a positional arg"
+    (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Options must appear before arguments" (:message result))))))
 
   (testing "end-of-options treats following values as positional"
     (let [literal-app {:name "lit"
@@ -282,9 +288,9 @@
                                          :validate {:pred non-blank?
                                                     :msg "BASE is required."}}]
                                  :run create!}]}
-          ok (cli/parse valid-app ["branch" "feature" "--base" "main"])
-          bad-arg (cli/parse valid-app ["branch" "" "--base" "main"])
-          bad-opt (cli/parse valid-app ["branch" "feature" "--base" ""])]
+          ok (cli/parse valid-app ["branch" "--base" "main" "feature"])
+          bad-arg (cli/parse valid-app ["branch" "--base" "main" ""])
+          bad-opt (cli/parse valid-app ["branch" "--base" "" "feature"])]
       (is (= :ok (:status ok)))
       (is (= :error (:status bad-arg)))
       (is (= "NAME is required." (:message bad-arg)))
