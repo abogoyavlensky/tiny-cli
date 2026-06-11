@@ -750,6 +750,38 @@
       (is (= :ok (:status result)))
       (is (= ["-la"] (get-in result [:context :args :cmd]))))))
 
+(def hidden-app
+  {:name "wtr"
+   :version "0.1.0"
+   :commands [{:name "ls"
+               :doc "List things."
+               :run create!}
+              {:name "migrate-legacy"
+               :doc "Migrate data from the old format."
+               :hidden? true
+               :run (fn [_ctx] :migrated)}]})
+
+(deftest hidden-commands
+  (testing "root help omits hidden commands but keeps visible ones"
+    (let [text (cli/root-help hidden-app)]
+      (is (some? (re-find #"wtr ls" text)))
+      (is (nil? (re-find #"migrate-legacy" text)))))
+
+  (testing "a hidden command still runs"
+    (let [result (cli/run-result hidden-app ["migrate-legacy"])]
+      (is (= :ok (:status result)))
+      (is (= :migrated (:result result)))))
+
+  (testing "help <hidden> still returns the command help"
+    (let [result (cli/parse hidden-app ["help" "migrate-legacy"])]
+      (is (= :help (:status result)))
+      (is (some? (re-find #"migrate-legacy" (:text result))))))
+
+  (testing "<hidden> --help still returns the command help"
+    (let [result (cli/parse hidden-app ["migrate-legacy" "--help"])]
+      (is (= :help (:status result)))
+      (is (some? (re-find #"Migrate data from the old format\." (:text result)))))))
+
 #?(:lg
    (do)
    :default

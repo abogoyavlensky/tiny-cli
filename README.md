@@ -174,6 +174,7 @@ Command fields:
 | `:variadic` | no | A single arg spec collecting all trailing tokens into a vector. See [Variadic Trailing Args](#variadic-trailing-args). |
 | `:opts` | no | Command-specific option specs. |
 | `:run` | yes | Handler function called with the parsed context. |
+| `:hidden?` | no | `true` omits the command from root help. It still runs, and `help <command>` still shows its help. |
 
 Arg fields:
 

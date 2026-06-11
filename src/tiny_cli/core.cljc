@@ -13,6 +13,10 @@
   [app command-name]
   (first (filter #(= command-name (:name %)) (:commands app))))
 
+(defn- visible-commands
+  [app]
+  (remove :hidden? (:commands app)))
+
 (defn- summary-line
   [heading doc]
   (if (seq doc)
@@ -118,7 +122,7 @@
   [app]
   (map (fn [command]
          [(command-usage-min app command) (:doc command)])
-       (:commands app)))
+       (visible-commands app)))
 
 (defn- root-usage-built-in-rows
   "Compact `[usage doc]` rows for built-in help/version invocations."

@@ -6,6 +6,8 @@
 
 **Tech Stack:** Clojure `.cljc` for let-go, Clojure, and Babashka, tested with `lgx test` and `lgx test-all`.
 
+**Status:** Completed 2026-06-11 - see the Implementation Summary at the end.
+
 ---
 
 ## Design
@@ -59,7 +61,7 @@ and an absent or falsy value shows it.
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Write the focused tests**
+- [x] **Step 1: Write the focused tests**
   Add a `hidden-commands` deftest with an app that has one visible and one
   hidden command. Assert:
   - Root help (`root-help`) does not mention the hidden command name.
@@ -70,15 +72,15 @@ and an absent or falsy value shows it.
   - `parse` of `["<hidden>" "--help"]` returns a `:help` result for the
     hidden command.
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
   Run: `lgx test`
   Expected: the new `hidden-commands` assertions fail; existing tests pass.
 
-- [ ] **Step 3: Implement the change**
+- [x] **Step 3: Implement the change**
   Add the private `visible-commands` helper near `command-by-name` and use
   it in `root-command-usage-rows` in place of `(:commands app)`.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test-all`
   Expected: all tests pass on every runtime.
 
@@ -87,11 +89,24 @@ and an absent or falsy value shows it.
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Add the spec note**
+- [x] **Step 1: Add the spec note**
   In the command spec documentation, add `:hidden?` with a one-line
   description: the command is omitted from root help but still runs, and
   `help <command>` still shows its help.
 
-- [ ] **Step 2: Verify rendering**
+- [x] **Step 2: Verify rendering**
   Run: `lgx test-all`
   Expected: all tests still pass; README reads correctly.
+
+## Implementation Summary
+
+Implemented as planned with no deviations. Added the private
+`visible-commands` helper to `src/tiny_cli/core.cljc` and used it in
+`root-command-usage-rows`, so commands with `:hidden? true` no longer
+appear in the root help's `Commands:` section while dispatch, validation,
+and command help keep using the full list. Added the `hidden-commands`
+deftest (root help omission, normal execution, `help <hidden>` and
+`<hidden> --help` reachability) and a `:hidden?` row to the README's
+command fields table. `lgx test-all` passes on let-go, Clojure, and
+Babashka (11 tests, 216 assertions). Two codex reviews returned no
+findings.
