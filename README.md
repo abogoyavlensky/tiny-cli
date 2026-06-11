@@ -10,6 +10,10 @@ version output, and simple validation.
 > [!NOTE]
 > [lgx](https://github.com/abogoyavlensky/lgx) is a dependency and project management tool for let-go.
 
+> [!IMPORTANT]
+> Requrements: `let-go >= 0.10.0`
+
+
 Add `tiny-cli` to your dependencies at `lgx.edn` file:
 
 ```clojure
