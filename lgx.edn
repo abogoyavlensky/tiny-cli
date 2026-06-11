@@ -17,8 +17,5 @@
                       {:sh "lgx test-all"}]}
 
          :release {:doc "Release a new version"
-                   :do [{:sh "echo \"==> Creating git tag\""}
-                        ; TODO: make configurable in lgx
-                        {:sh ["git" "tag" "v0.1.0-rc2"]}
-                        {:sh "echo \"==> Pushing git tag\""}
+                   :do [{:sh ["git" "tag" "v0.1.0-rc2"]}
                         {:sh "git push --tags"}]}}}
