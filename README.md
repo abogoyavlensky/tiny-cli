@@ -39,19 +39,14 @@ Require the core namespace and use `run!` at the application edge:
                :doc "Do something useful."
                :run do-something!}]})
 
-(cli/run! app argv)
+(cli/run! app *command-line-args*)
 ```
 
 `app` is the CLI spec. `argv` is a vector of command-line tokens without the
-executable name or script path. Normalize process args before calling
-`tiny-cli`:
+executable name or script path:
 
 ```clojure
-; let-go
-(cli/run! app (vec (rest os/args)))
-
-; Clojure / Babashka
-(cli/run! app (vec *command-line-args*))
+(cli/run! app *command-line-args*))
 ```
 
 `run!` parses args, prints help, version, and parse errors, invokes command
@@ -105,14 +100,8 @@ command, one required positional arg, one command option, and one global flag.
                        :doc "Target environment."}]
                :run deploy-service!}]})
 
-(defn- cli-argv [argv]
-  "Return args after the `--` separator while developing, or CLI args in bundled mode."
-  (if (some #(= % "--") argv)
-    (rest (drop-while #(not (= % "--")) argv))
-    (rest argv)))
-
 (when-not *compiling-aot* 
-  (cli/run! app (cli-argv os/args)))
+  (cli/run! app *command-line-args*))
 ```
 
 Example:

@@ -1,21 +1,21 @@
 {:paths ["src"]
- :tasks {:test-all {:doc "Run all integration tests"
-                    :do [{:sh "lgx test"}
-                         {:sh "echo \"==> clojure\""}
-                         {:sh "clojure -M -e \"(require 'tiny-cli.core-test)\""}
-                         {:sh "echo \"==> babashka\""}
-                         {:sh "bb -cp src:test -e \"(require 'tiny-cli.core-test)\""}]}
+ :tasks {test-all {:doc "Run all integration tests"
+                   :do [{:sh "lgx test"}
+                        {:sh "echo \"==> clojure\""}
+                        {:sh "clojure -M -e \"(require 'tiny-cli.core-test)\""}
+                        {:sh "echo \"==> babashka\""}
+                        {:sh "bb -cp src:test -e \"(require 'tiny-cli.core-test)\""}]}
          
-         :fmt {:doc "Format source files"
-               :do [{:sh "cljfmt fix"}]}
+         fmt {:doc "Format source files"
+              :do [{:sh "cljfmt fix"}]}
          
-         :fmt-check {:doc "Check source file formatting"
-                     :do [{:sh "cljfmt check"}]}
+         fmt-check {:doc "Check source file formatting"
+                    :do [{:sh "cljfmt check"}]}
          
-         :check {:doc "Run all checks"
-                 :do [{:sh "lgx fmt"}
-                      {:sh "lgx test-all"}]}
+         check {:doc "Run all checks"
+                :do [{:sh "lgx fmt"}
+                     {:sh "lgx test-all"}]}
 
-         :release {:doc "Release a new version"
-                   :do [{:sh ["git" "tag" "v0.1.0-rc2"]}
-                        {:sh "git push --tags"}]}}}
+         release {:doc "Release a new version"
+                  :do [{:sh ["git" "tag" "v0.1.0-rc2"]}
+                       {:sh "git push --tags"}]}}}
