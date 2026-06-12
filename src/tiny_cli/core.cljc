@@ -328,7 +328,7 @@
                  specs)))
 
 (defn- command-spec-error
-  [app command]
+  [command]
   (cond
     (nil? (:name command))
     (error-result "Command requires :name.")
@@ -368,7 +368,7 @@
 
 (defn- first-command-spec-error
   [app]
-  (first (keep #(command-spec-error app %) (:commands app))))
+  (first (keep command-spec-error (:commands app))))
 
 (defn- first-option-conflict
   [app]
@@ -594,7 +594,7 @@
               (if-let [selected (command-by-name app token)]
                 (if-let [conflict (option-conflict (:opts app) (:opts selected))]
                   (error-result (str "Option conflict: " conflict))
-                  (if-let [spec-error (command-spec-error app selected)]
+                  (if-let [spec-error (command-spec-error selected)]
                     spec-error
                     (recur more selected state)))
                 (error-result (str "Unknown command: " token)))

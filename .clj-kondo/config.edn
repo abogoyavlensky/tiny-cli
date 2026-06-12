@@ -1,0 +1,4 @@
+;; The :default reader-conditional branches in .cljc files target Clojure
+;; and babashka (the :lg branches target let-go); ClojureScript is never a
+;; target, so only lint the :clj feature.
+{:cljc {:features [:clj]}}
