@@ -10,9 +10,13 @@
          fmt-check {:doc "Check source file formatting"
                     :do [{:sh "cljfmt check"}]}
          
+         lint {:doc "Lint source files"
+               :do [{:sh "find src test -type f -name '*.lg' -print0 | xargs -0 clj-kondo --lint"}]}
+         
          check {:doc "Run all checks"
                 :do [{:sh "lgx fmt"}
-                     {:sh "lgx test-all"}]}
+                     {:sh "lgx lint"}
+                     {:sh "lgx test-all"}]}                    
 
          release {:doc "Release a new version"
                   :do [{:sh ["git" "tag" "v0.1.0-rc2"]}
