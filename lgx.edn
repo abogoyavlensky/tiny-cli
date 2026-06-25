@@ -1,4 +1,5 @@
 {:paths ["src"]
+ :lg-version "1.10.0"
  :tasks {test-all {:doc "Run all integration tests"
                    :do [{:sh "lgx test"}
                         {:sh "clojure -M -e \"(require 'tiny-cli.core-test)\""}

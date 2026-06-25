@@ -1,5 +1,5 @@
 bin/
-.clj-lsp
+.clj-pulse
 .cpcache/
 .tmp/
 .clj-kondo/*
