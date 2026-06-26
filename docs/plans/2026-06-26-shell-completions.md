@@ -186,7 +186,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
 - Create: `test/tiny_cli/completion_test.cljc`
 - Modify: `lgx.edn`
 
-- [ ] **Step 1: Write failing tests for `candidates`**
+- [x] **Step 1: Write failing tests for `candidates`**
   Create `completion_test.cljc` with the `ns`/require shape and the
   `#?(:lg (do) :default (let [result (run-tests)] (when (pos? (+ (:fail result) (:error result))) (System/exit 1))))`
   tail copied from `core_test.cljc`. Use a sample app with: a global value option `--base-dir`; `list` (no args); `create` with a `:name` arg (no `:complete`) and a `--from`/`-f` value option carrying `:complete ["main" "dev"]`; `remove` with a `:name` arg carrying `:complete (fn [_] ["feat-x" "feature/bar"])` and a boolean `--force`; and `run` with a `:name` arg and a `:variadic :cmd`. Cover:
@@ -204,7 +204,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   - `help` arg: `["help"] ""` → `["list" "create" "remove" "run"]` (command names, no `help`); `["help"] "ru"` → `["run"]`.
   - unknown command: `["bogus"] ""` → `[]`.
 
-- [ ] **Step 2: Wire `completion-test` into `test-all` and run it**
+- [x] **Step 2: Wire `completion-test` into `test-all` and run it**
   In `lgx.edn`, change the Clojure step to
   `clojure -M -e "(require 'tiny-cli.core-test) (require 'tiny-cli.completion-test)"`
   and the Babashka step to
@@ -212,7 +212,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   Run: `lgx test`
   Expected: FAIL — `tiny-cli.completion` namespace does not exist yet.
 
-- [ ] **Step 3: Implement `candidates`**
+- [x] **Step 3: Implement `candidates`**
   Create `src/tiny_cli/completion.cljc` with the `ns` requiring only
   `#?(:lg [string :as str] :default [clojure.string :as str])`. Implement private
   `find-command`, `long-flags`, `value-option?` (matches a token exactly against
@@ -224,11 +224,11 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   `{:words :cur :command :positionals}` for `:complete` calls. Filter the final
   result with `(filterv #(str/starts-with? % cur) …)`.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test`
   Expected: PASS. Then `lgx test-all` — PASS on let-go, Clojure, and Babashka.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: add completion candidate engine"`
 
 ### Task 2: Shell-script generation
