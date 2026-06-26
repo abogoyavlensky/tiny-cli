@@ -266,7 +266,11 @@
           command-name
           (recur (conj seen command-name) (rest remaining)))))))
 
-(def ^:private reserved-command-names #{"help"})
+;; `help` is always built in, and `__complete` is the hidden completion RPC token
+;; that `run!` intercepts before parsing — so neither may be a user command. Note
+;; `completion` is intentionally NOT reserved: an app may define its own to
+;; override the built-in (see tiny-cli.completion/install-command).
+(def ^:private reserved-command-names #{"help" "__complete"})
 
 (def ^:private reserved-option-spellings #{"--help" "-h" "--version"})
 

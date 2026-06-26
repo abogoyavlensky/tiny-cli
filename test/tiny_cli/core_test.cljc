@@ -820,6 +820,14 @@
       (is (= :error (:status result)))
       (is (some? (re-find #"Invalid :complete spec" (:message result))))))
 
+  (testing "__complete is a reserved command name (no silent hijack of a user command)"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "__complete"
+                               :run create!}]}
+          result (cli/parse bad-app [])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Reserved command name" (:message result))))))
+
   (testing "valid :complete specs (vector or fn) pass validation"
     (let [vec-app {:name "ok"
                    :commands [{:name "go"
