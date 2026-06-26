@@ -302,7 +302,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
 - Modify: `src/tiny_cli/core.cljc`
 - Modify: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Write failing tests in `core_test.cljc`**
+- [x] **Step 1: Write failing tests in `core_test.cljc`**
   Add a `completion-integration` deftest:
   - `(run-result app ["completion" "bash"])` returns `:ok` and printing it (capture via
     `with-out-str` under `:default`; under `:lg` assert `(= :ok (:status …))`) — keep
@@ -321,11 +321,11 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
     `:error` matching `#"Invalid :complete spec"`; the same command with a valid
     `:complete ["a"]` or `:complete (fn [_] [])` parses without that error.
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
   Run: `lgx test`
   Expected: FAIL — completion not wired into core.
 
-- [ ] **Step 3: Implement core integration**
+- [x] **Step 3: Implement core integration**
   - Add `[tiny-cli.completion :as completion]` to the `ns` require.
   - Add private `bad-complete?` (`(not (or (fn? x) (and (sequential? x) (every? string? x))))`)
     and `first-invalid-complete` over specs; add a `(first-invalid-complete …)` →
@@ -336,13 +336,13 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   - In `run!`, before `run-result`, intercept:
     `(if (and (not (false? (:completion? app))) (= "__complete" (first argv))) (do (completion/complete! app (rest argv)) (exit! 0)) <existing body>)`.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test` then `lgx test-all`
   Expected: PASS on all runtimes. If any pre-existing test asserts the full command
   list or that `completion`/`__complete` is unknown, update it — the injected command
   is hidden, so root-help and command-help snapshots should be unaffected.
 
-- [ ] **Step 5: Manual smoke check**
+- [x] **Step 5: Manual smoke check**
   Build and exercise the endpoint end to end. tiny-cli is a library, so first create a
   scratch `.lg` app (reuse the README "Minimal let-go cli app" deploy sample, adding a
   `:complete` vector to one arg) and build it with `lgx build`, then:
@@ -351,7 +351,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   script mentioning `__complete`; `<app> completion powershell` errors with exit 2;
   TAB after the app name suggests commands.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
   `git commit -m "feat: wire built-in completion into core run!/parse"`
 
 ### Task 5: Documentation

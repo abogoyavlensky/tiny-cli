@@ -782,6 +782,58 @@
       (is (= :help (:status result)))
       (is (some? (re-find #"Migrate data from the old format\." (:text result)))))))
 
+(deftest completion-integration
+  (testing "the built-in completion command is reachable through parse"
+    (let [result (cli/parse app ["completion" "bash"])]
+      (is (= :ok (:status result)))
+      (is (= "completion" (:name (:command result))))))
+
+  (testing "run-result invokes the completion command handler"
+    (is (= :ok (:status (cli/run-result app ["completion" "bash"])))))
+
+  (testing "an unsupported shell is a validation error"
+    (let [result (cli/parse app ["completion" "powershell"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Shell must be one of" (:message result))))))
+
+  (testing "help completion shows the command help"
+    (let [result (cli/parse app ["help" "completion"])]
+      (is (= :help (:status result)))
+      (is (some? (re-find #"completion" (:text result))))))
+
+  (testing "the completion command stays hidden from root help"
+    (is (nil? (re-find #"completion" (cli/root-help app))))
+    (is (nil? (re-find #"completion" (:text (cli/parse app []))))))
+
+  (testing ":completion? false disables the built-in command"
+    (let [result (cli/parse (assoc app :completion? false) ["completion" "bash"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Unknown command" (:message result))))))
+
+  (testing "a malformed :complete spec is reported during validation"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :args [{:key :x
+                                       :complete 42}]
+                               :run create!}]}
+          result (cli/parse bad-app ["go" "v"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Invalid :complete spec" (:message result))))))
+
+  (testing "valid :complete specs (vector or fn) pass validation"
+    (let [vec-app {:name "ok"
+                   :commands [{:name "go"
+                               :args [{:key :x
+                                       :complete ["a" "b"]}]
+                               :run create!}]}
+          fn-app {:name "ok"
+                  :commands [{:name "go"
+                              :args [{:key :x
+                                      :complete (fn [_ctx] ["a"])}]
+                              :run create!}]}]
+      (is (= :ok (:status (cli/parse vec-app ["go" "v"]))))
+      (is (= :ok (:status (cli/parse fn-app ["go" "v"])))))))
+
 #?(:lg
    (do)
    :default
