@@ -42,6 +42,9 @@
            (completion/candidates app ["help"] "")))
     (is (= ["run"] (completion/candidates app ["help"] "ru"))))
 
+  (testing "help offers nothing once its command arg is filled"
+    (is (= [] (completion/candidates app ["help" "list"] ""))))
+
   (testing "unknown command completes nothing"
     (is (= [] (completion/candidates app ["bogus"] "")))))
 

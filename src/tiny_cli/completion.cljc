@@ -126,7 +126,9 @@
         (command-name-candidates app)
 
         (= :help command)
-        (vec (remove #(= "help" %) (command-name-candidates app)))
+        (if (empty? positionals)
+          (vec (remove #(= "help" %) (command-name-candidates app)))
+          [])
 
         (map? command)
         (resolve-complete (:complete (positional-spec command (count positionals))) ctx)
