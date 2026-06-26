@@ -133,3 +133,83 @@
 
         :else
         []))))
+
+;; Shell-script generation. Each script is built from a vector of literal lines
+;; (bulletproof for embedded quotes and the bash `$'\n'` backslash) with the app
+;; name interpolated two ways: `name` verbatim for registration and invocation,
+;; and `id` — a safe shell identifier — for function names.
+
+(defn- sanitize
+  "An app name reduced to a valid shell identifier: every character outside
+   [A-Za-z0-9_] becomes `_` (so `my-tool` -> `my_tool`)."
+  [s]
+  (str/replace s #"[^A-Za-z0-9_]" "_"))
+
+(defn- lines->script
+  [lines]
+  (str (str/join "\n" lines) "\n"))
+
+(defn- bash-script
+  [name id]
+  (lines->script
+    [(str "# bash completion for " name ".")
+     (str "# Load with: source <(" name " completion bash)")
+     (str "_" id "_complete() {")
+     "    local cur candidates"
+     "    cur=\"${COMP_WORDS[COMP_CWORD]}\""
+     "    candidates=\"$(\"${COMP_WORDS[0]}\" __complete \"${COMP_WORDS[@]:1:COMP_CWORD}\" 2>/dev/null)\""
+     "    local IFS=$'\\n'"
+     "    COMPREPLY=($(compgen -W \"$candidates\" -- \"$cur\"))"
+     "}"
+     (str "# -o default: fall back to filename completion when " name " offers nothing.")
+     (str "complete -o default -F _" id "_complete " name)]))
+
+(defn- zsh-script
+  [name id]
+  (lines->script
+    [(str "#compdef " name)
+     (str "# zsh completion for " name ".")
+     (str "# Load with: source <(" name " completion zsh)")
+     (str "# or save on your fpath: " name " completion zsh > ~/.zfunc/_" id)
+     (str "_" id "() {")
+     "    local -a candidates"
+     "    candidates=(\"${(@f)$(\"${words[1]}\" __complete \"${(@)words[2,CURRENT]}\" 2>/dev/null)}\")"
+     "    if (( ${#candidates[@]} )) && [[ -n \"${candidates[1]}\" ]]; then"
+     "        compadd -Q -a candidates"
+     "    else"
+     "        _default"
+     "    fi"
+     "}"
+     (str "# On fpath, #compdef invokes _" id " for us; when sourced, register it manually.")
+     (str "if [[ \"${funcstack[1]}\" == \"_" id "\" ]]; then")
+     (str "    _" id " \"$@\"")
+     "else"
+     (str "    compdef _" id " " name)
+     "fi"]))
+
+(defn- fish-script
+  [name id]
+  (lines->script
+    [(str "# fish completion for " name ".")
+     (str "# Load with: " name " completion fish | source")
+     (str "# or save it: " name " completion fish > ~/.config/fish/completions/" name ".fish")
+     (str "function __" id "_complete")
+     "    set -l words (commandline -opc)"
+     "    set -l cur (commandline -ct)"
+     (str "    set -g __" id "_candidates ($words[1] __complete $words[2..-1] \"$cur\" 2>/dev/null)")
+     (str "    test (count $__" id "_candidates) -gt 0")
+     "end"
+     (str "complete -c " name " -f -n '__" id "_complete' -a '$__" id "_candidates'")
+     (str "complete -c " name " -n 'not __" id "_complete' -F")]))
+
+(defn script
+  "The completion script for `shell` (\"bash\", \"zsh\", or \"fish\"), or nil for
+   an unknown shell."
+  [app shell]
+  (let [name (:name app)
+        id (sanitize name)]
+    (case shell
+      "bash" (bash-script name id)
+      "zsh" (zsh-script name id)
+      "fish" (fish-script name id)
+      nil)))

@@ -237,28 +237,28 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
 - Modify: `src/tiny_cli/completion.cljc`
 - Modify: `test/tiny_cli/completion_test.cljc`
 
-- [ ] **Step 1: Write failing tests for `script`**
+- [x] **Step 1: Write failing tests for `script`**
   For each shell in `["bash" "zsh" "fish"]`, assert `(script {:name "wtr"} shell)`
   is non-blank and contains `"__complete"`. Assert name sanitization: a `{:name "my-tool"}`
   bash script contains `_my_tool_complete` (function id) and registers against the
   literal `my-tool` (e.g. contains `-F _my_tool_complete my-tool`). Assert
   `(script {:name "wtr"} "powershell")` is `nil`.
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
   Run: `lgx test`
   Expected: FAIL — `script` is unbound.
 
-- [ ] **Step 3: Implement `script`**
+- [x] **Step 3: Implement `script`**
   Add private `sanitize` (`str/replace name #"[^A-Za-z0-9_]" "_"`), one private
   template fn per shell taking `[name id]` and returning the script string from the
   Design (substitute `NAME`/`ID`), and public `script` dispatching on the shell
   string with a `nil` default.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test` then `lgx test-all`
   Expected: PASS on all runtimes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: generate bash/zsh/fish completion scripts"`
 
 ### Task 3: Command injection and the I/O endpoint

@@ -84,6 +84,21 @@
   (testing "a value-taking short option resolves the same slot"
     (is (= ["main"] (completion/candidates app ["create" "-f"] "m")))))
 
+(deftest completion-scripts
+  (testing "every supported shell yields a script that calls __complete"
+    (doseq [shell ["bash" "zsh" "fish"]]
+      (let [s (completion/script {:name "wtr"} shell)]
+        (is (not (str/blank? s)))
+        (is (str/includes? s "__complete")))))
+
+  (testing "the app name is sanitized for shell function ids but kept literal for registration"
+    (let [s (completion/script {:name "my-tool"} "bash")]
+      (is (str/includes? s "_my_tool_complete"))
+      (is (str/includes? s "-F _my_tool_complete my-tool"))))
+
+  (testing "an unknown shell yields nil"
+    (is (nil? (completion/script {:name "wtr"} "powershell")))))
+
 #?(:lg
    (do)
    :default
