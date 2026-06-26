@@ -3,7 +3,8 @@
      :clj (:refer-clojure :exclude [run!]))
   (:require #?(:lg [os])
             #?(:lg [string :as str]
-               :default [clojure.string :as str])))
+               :default [clojure.string :as str])
+            [tiny-cli.completion :as completion]))
 
 (defn- join-lines
   [lines]
@@ -265,7 +266,11 @@
           command-name
           (recur (conj seen command-name) (rest remaining)))))))
 
-(def ^:private reserved-command-names #{"help"})
+;; `help` is always built in, and `__complete` is the hidden completion RPC token
+;; that `run!` intercepts before parsing — so neither may be a user command. Note
+;; `completion` is intentionally NOT reserved: an app may define its own to
+;; override the built-in (see tiny-cli.completion/install-command).
+(def ^:private reserved-command-names #{"help" "__complete"})
 
 (def ^:private reserved-option-spellings #{"--help" "-h" "--version"})
 
@@ -327,6 +332,17 @@
                     (bad-validation? validation))
                  specs)))
 
+(defn- bad-complete?
+  [complete]
+  (not (or (fn? complete)
+           (and (sequential? complete) (every? string? complete)))))
+
+(defn- first-invalid-complete
+  [specs]
+  (first (filter #(and (contains? % :complete)
+                       (bad-complete? (:complete %)))
+                 specs)))
+
 (defn- command-spec-error
   [command]
   (cond
@@ -364,7 +380,10 @@
     (error-result (str "Duplicate option spelling: " (duplicate-in (option-spellings (:opts command)))))
 
     (first-invalid-validation (concat (arg-specs command) (:opts command)))
-    (error-result "Invalid validation spec.")))
+    (error-result "Invalid validation spec.")
+
+    (first-invalid-complete (concat (arg-specs command) (:opts command)))
+    (error-result "Invalid :complete spec.")))
 
 (defn- first-command-spec-error
   [app]
@@ -410,6 +429,9 @@
 
     (first-invalid-validation (:opts app))
     (error-result "Invalid validation spec.")
+
+    (first-invalid-complete (:opts app))
+    (error-result "Invalid :complete spec.")
 
     (first-option-conflict app)
     (error-result (str "Option conflict: " (first-option-conflict app)))
@@ -528,7 +550,8 @@
   [app argv]
   (if-let [spec-error (app-spec-error app)]
     spec-error
-    (let [global-longs (target-index :global (:opts app) long-index)
+    (let [app (completion/install-command app)
+          global-longs (target-index :global (:opts app) long-index)
           global-shorts (target-index :global (:opts app) short-index)]
       (loop [tokens (vec argv)
              command nil
@@ -665,18 +688,23 @@
 
 (defn run!
   [app argv]
-  (let [result (run-result app argv)]
-    (case (:status result)
-      :ok (:result result)
-      :help (do
-              (write-out! (str (:text result) "\n"))
-              (exit! 0))
-      :version (do
-                 (write-out! (str (:text result) "\n"))
-                 (exit! 0))
-      :error (do
-               (write-err! (str (:message result) "\n"))
-               (when (:text result)
-                 (write-err! (str (:text result) "\n")))
-               (exit! 2))
-      result)))
+  (if (and (not (false? (:completion? app)))
+           (= "__complete" (first argv)))
+    (do
+      (completion/complete! app (rest argv))
+      (exit! 0))
+    (let [result (run-result app argv)]
+      (case (:status result)
+        :ok (:result result)
+        :help (do
+                (write-out! (str (:text result) "\n"))
+                (exit! 0))
+        :version (do
+                   (write-out! (str (:text result) "\n"))
+                   (exit! 0))
+        :error (do
+                 (write-err! (str (:message result) "\n"))
+                 (when (:text result)
+                   (write-err! (str (:text result) "\n")))
+                 (exit! 2))
+        result))))
