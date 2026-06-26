@@ -123,75 +123,96 @@ lgx build
 deploy --dry-run service --env prod api
 ```
 
-## Expected App Spec
+## App Spec Reference
 
-The first argument to `run!` is the app spec. It is plain data:
+The first argument to `run!` is the app spec, plain data. The smallest valid
+spec names the tool and one command:
 
 ```clojure
-{:name "tool-name"
- :version "0.1.0"
- :doc "Short app description."
- :opts [{:key :verbose?
-         :short "v"
-         :long "verbose"
-         :doc "Print extra output."}]
- :commands [{:name "create"
-             :doc "Create an item."
-             :args [{:key :name
-                     :doc "Item name."}]
-             :opts [{:key :force?
-                     :short "f"
-                     :long "force"
-                     :doc "Replace an existing item."}]
-             :run create!}]}
+{:name "tool"
+ :commands [{:name "greet"
+             :run (fn [_ctx] (println "hi"))}]}
 ```
 
-App fields:
+`:name` and `:commands` are required; every command needs `:name` and `:run`.
+Everything else is optional. The annotated reference below shows every key with
+its possible values; the sections that follow spell out the rules in detail.
 
-| Key | Required? | Description |
-|---|---:|---|
-| `:name` | yes | Executable name used in help and version output. |
-| `:version` | no | Version used by `--version` and unclaimed `-v`. |
-| `:doc` | no | Root description shown in help. |
-| `:footer` | no | Trailing text shown after commands in root help. |
-| `:opts` | no | Global option specs. |
-| `:commands` | yes | Flat list of command specs. |
-| `:completion?` | no | Set `false` to disable the built-in `completion` command and `__complete` endpoint. Defaults to on. See [Shell Completions](#shell-completions). |
+```clojure
+{;; Executable name, shown in help, version, and usage lines. Required.
+ :name "tool-name"
 
-Command fields:
+ ;; Version string for `--version` and an unclaimed `-v`. When it is absent and
+ ;; a version is requested, parsing returns "No version available."
+ :version "0.1.0"
 
-| Key | Required? | Description |
-|---|---:|---|
-| `:name` | yes | Command token typed by the user. |
-| `:doc` | no | Command description shown in help. |
-| `:args` | no | Fixed positional args. All declared args are required. |
-| `:variadic` | no | A single arg spec collecting all trailing tokens into a vector. See [Variadic Trailing Args](#variadic-trailing-args). |
-| `:opts` | no | Command-specific option specs. |
-| `:run` | yes | Handler function called with the parsed context. |
-| `:hidden?` | no | `true` omits the command from root help. It still runs, and `help <command>` still shows its help. |
+ ;; Root description shown at the top of root help.
+ :doc "Short app description."
 
-Arg fields:
+ ;; Trailing text shown after the command list in root help.
+ :footer "Run 'tool-name <command> --help' for more information on a command."
 
-| Key | Required? | Description |
-|---|---:|---|
-| `:key` | yes | Keyword used in the handler `:args` map. |
-| `:doc` | no | Description shown in command help. |
-| `:validate` | no | `{:pred fn :msg "message"}` validation spec. |
-| `:complete` | no | Completion candidates for this positional: a vector of strings or a `(fn [ctx])` returning strings. See [Shell Completions](#shell-completions). |
+ ;; Set false to drop the built-in `completion` command and `__complete`
+ ;; endpoint. Defaults to on. See Shell Completions.
+ :completion? true
 
-Option fields:
+ ;; Global option specs. They may appear before the command, and after it
+ ;; unless a command option claims the same spelling. Each value lands in the
+ ;; handler's :global map.
+ :opts
+ [{;; Keyword used in the handler's :global map. Required.
+   :key :verbose?
+   ;; Short spelling without the leading "-". Give :short, :long, or both.
+   :short "v"
+   ;; Long spelling without the leading "--".
+   :long "verbose"
+   ;; true consumes the next token as the option's value; omit it for a flag.
+   :value? false
+   ;; Value placed in :global when the option is absent.
+   :default nil
+   ;; true rejects parsing when the option is missing.
+   :required? false
+   ;; {:pred fn :msg "message"}. The predicate receives the raw string value.
+   :validate {:pred some? :msg "..."}
+   ;; Value-completion candidates: a vector of strings or a (fn [ctx]) returning
+   ;; strings. See Shell Completions.
+   :complete ["a" "b"]
+   ;; Description shown in help.
+   :doc "Print extra output."}]
 
-| Key | Required? | Description |
-|---|---:|---|
-| `:key` | yes | Keyword used in `:global` or `:opts`. |
-| `:short` | no | Short option without `-`, such as `"v"`. |
-| `:long` | no | Long option without `--`, such as `"verbose"`. |
-| `:value?` | no | `true` means the option requires a value. |
-| `:default` | no | Value inserted when the option is absent. |
-| `:required?` | no | Requires the option before the handler runs. |
-| `:validate` | no | `{:pred fn :msg "message"}` validation spec. |
-| `:complete` | no | Completion candidates for this option's value: a vector of strings or a `(fn [ctx])` returning strings. See [Shell Completions](#shell-completions). |
-| `:doc` | no | Description shown in help. |
+ ;; Flat list of command specs. Required.
+ :commands
+ [{;; Command token the user types. Required.
+   :name "create"
+   ;; Command description shown in help.
+   :doc "Create an item."
+   ;; true hides the command from root help; it still runs, and
+   ;; `help <command>` still shows its help.
+   :hidden? false
+   ;; Fixed positional args, in order. Every declared arg is required.
+   :args
+   [{;; Keyword used in the handler's :args map. Required.
+     :key :name
+     ;; Description shown in command help.
+     :doc "Item name."
+     ;; {:pred fn :msg "message"} validation spec.
+     :validate {:pred non-blank? :msg "NAME is required."}
+     ;; Value-completion candidates: a vector of strings or a (fn [ctx]).
+     :complete (fn [ctx] (candidates ctx))}]
+   ;; One arg spec that slurps every token after the fixed :args into a vector.
+   ;; At most one per command. See Variadic Trailing Args.
+   :variadic {:key :cmd
+              :doc "Command to run; omit for a shell."}
+   ;; Command-specific option specs, same shape as global :opts. Each value
+   ;; lands in the handler's :opts map.
+   :opts
+   [{:key :force?
+     :short "f"
+     :long "force"
+     :doc "Replace an existing item."}]
+   ;; Handler called with the parsed context map. Required. See Handler Context.
+   :run create!}]}
+```
 
 Each option needs `:short`, `:long`, or both. Duplicate command names, duplicate
 arg keys, duplicate option keys, duplicate option spellings, and global/command
