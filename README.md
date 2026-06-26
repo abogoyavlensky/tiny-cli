@@ -156,6 +156,7 @@ App fields:
 | `:footer` | no | Trailing text shown after commands in root help. |
 | `:opts` | no | Global option specs. |
 | `:commands` | yes | Flat list of command specs. |
+| `:completion?` | no | Set `false` to disable the built-in `completion` command and `__complete` endpoint. Defaults to on. See [Shell Completions](#shell-completions). |
 
 Command fields:
 
@@ -176,6 +177,7 @@ Arg fields:
 | `:key` | yes | Keyword used in the handler `:args` map. |
 | `:doc` | no | Description shown in command help. |
 | `:validate` | no | `{:pred fn :msg "message"}` validation spec. |
+| `:complete` | no | Completion candidates for this positional: a vector of strings or a `(fn [ctx])` returning strings. See [Shell Completions](#shell-completions). |
 
 Option fields:
 
@@ -188,6 +190,7 @@ Option fields:
 | `:default` | no | Value inserted when the option is absent. |
 | `:required?` | no | Requires the option before the handler runs. |
 | `:validate` | no | `{:pred fn :msg "message"}` validation spec. |
+| `:complete` | no | Completion candidates for this option's value: a vector of strings or a `(fn [ctx])` returning strings. See [Shell Completions](#shell-completions). |
 | `:doc` | no | Description shown in help. |
 
 Each option needs `:short`, `:long`, or both. Duplicate command names, duplicate
@@ -372,6 +375,62 @@ Options:
 Global Options:
   -n, --dry-run  Print the deployment plan.
 ```
+
+## Shell Completions
+
+Every `tiny-cli` app gets shell completion built in — no extra code. A hidden
+`completion` command prints a completion script for `bash`, `zsh`, or `fish`,
+and a hidden `__complete` endpoint answers the script's requests on TAB. Out of
+the box you get completion for commands, long options, `help`, and the
+`completion` command's own shell argument.
+
+Install it by sourcing the script for your shell.
+
+Bash — add to `~/.bashrc`:
+
+```sh
+source <(mytool completion bash)
+```
+
+Zsh — source it in `~/.zshrc` (after `compinit`), or save it on your `fpath`:
+
+```sh
+mkdir -p ~/.zfunc
+mytool completion zsh > ~/.zfunc/_mytool
+```
+
+and make sure `~/.zshrc` has `fpath+=~/.zfunc` before `compinit` runs. For an
+app name with non-identifier characters, prefer the `source` form: zsh autoload
+needs the file name to match the script's sanitized function id.
+
+Fish:
+
+```sh
+mytool completion fish > ~/.config/fish/completions/mytool.fish
+```
+
+### App-specific completions
+
+Add `:complete` to any arg or option spec to complete dynamic values. It is a
+vector of strings, or a one-argument function returning a seq of strings.
+`tiny-cli` prefix-filters the result by the word being typed, so completers
+return unfiltered candidates. The function receives a context map with `:words`
+(the words before the cursor), `:cur` (the word being completed), `:command`
+(the selected command spec), and `:positionals` (positional values already
+given).
+
+```clojure
+{:name "remove"
+ :doc "Remove a worktree."
+ :args [{:key :name
+         :doc "Worktree name."
+         :complete (fn [_ctx] (existing-worktree-names))}]
+ :run remove!}
+```
+
+A positional whose value is new each time — a name being created — simply omits
+`:complete`, and the shell falls back to its own filename completion. To turn
+the whole feature off, set `:completion? false` on the app.
 
 ## Library Functions
 

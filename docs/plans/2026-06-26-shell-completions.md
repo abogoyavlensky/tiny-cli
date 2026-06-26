@@ -6,6 +6,8 @@
 
 **Tech Stack:** Clojure `.cljc` for let-go, Clojure, and Babashka; tested with `lgx test` (let-go) and `lgx test-all` (all three runtimes). Zero runtime dependencies.
 
+**Status:** Completed 2026-06-26 — see the Implementation Summary at the end.
+
 ---
 
 ## Design
@@ -359,7 +361,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Document the API**
+- [x] **Step 1: Document the API**
   - Add `:complete` rows to the Arg fields and Option fields tables: "Completion
     candidates for this slot — a vector of strings or a `(fn [ctx])` returning
     strings." Note the ctx keys and that results are prefix-filtered.
@@ -375,13 +377,50 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
     `<app> completion fish > ~/.config/fish/completions/<app>.fish`).
   - Use the /writing-clearly skill for the prose.
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
   Run: `lgx test-all`
   Expected: PASS; README reads correctly.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
   `git commit -m "docs: document built-in shell completions"`
 
 ## Implementation Summary
 
-_(Filled in after implementation.)_
+**Status: Completed (2026-06-26).** All five tasks implemented and verified.
+
+**What was built:** A new `tiny-cli.completion` namespace — pure `candidates`
+(the candidate engine), `script` (bash/zsh/fish generators), `install-command`
+(injects the hidden `completion` command), and the I/O `complete!` — plus four
+touch-points in `tiny-cli.core`: `parse` rebinds `app` through
+`install-command`, `run!` intercepts `__complete` before parsing, and
+`command-spec-error`/`app-spec-error` reject malformed `:complete` specs. Any
+app gets bash/zsh/fish completion with zero completion code (commands, long
+flags, `help`, and the `completion` shell arg); `:complete` on an arg/option
+spec (a vector or `(fn [ctx])`) adds dynamic values; `:completion? false` opts
+out; defining your own `completion` command overrides the built-in.
+
+**Verification:** `lgx test-all` green on let-go, Clojure, and Babashka
+(let-go 18 tests / 270 assertions; clj & bb each 12 core + 6 completion tests).
+`lgx lint` clean. End-to-end smoke check built a real downstream binary that
+consumes this worktree via `:local/root` with no completion code, then drove
+the actual sourced bash completion function: commands, prefixes, dynamic arg
+values (`api web worker`), option values (`staging prod`), flags, file
+fallback, and exit codes (`__complete` → 0, bad shell → 2) all behaved
+correctly.
+
+**Codex reviews (two background runs):**
+- After Task 3: flagged that completion wasn't wired into core and that
+  `:complete` lacked spec validation — both were exactly the planned Task 4
+  work, which resolved them.
+- After Task 4: one P2 — an app command literally named `__complete` would be
+  silently hijacked by the `run!` intercept. Fixed by reserving `__complete`
+  alongside `help` in `reserved-command-names`, turning the collision into a
+  clear spec error. `completion` remains intentionally unreserved (overridable).
+
+**Deviations from the plan:**
+- Trimmed the `:complete` context map to `{:words :cur :command :positionals}`
+  (dropped `:global` as YAGNI; the map stays open for later keys).
+- Generated scripts are functionally identical to wtr's resource scripts but
+  carry leaner comments (verified by diffing the functional lines).
+- Reserved `__complete` as a command name — a follow-up from the Task 4 codex
+  review, not in the original plan.
