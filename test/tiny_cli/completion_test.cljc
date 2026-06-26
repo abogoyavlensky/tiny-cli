@@ -99,6 +99,37 @@
   (testing "an unknown shell yields nil"
     (is (nil? (completion/script {:name "wtr"} "powershell")))))
 
+(defn- find-completion-command
+  [installed]
+  (first (filter #(= "completion" (:name %)) (:commands installed))))
+
+(deftest install-command-injection
+  (testing "appends a hidden completion command when absent"
+    (let [cmd (find-completion-command (completion/install-command app))]
+      (is (some? cmd))
+      (is (:hidden? cmd))
+      (is (fn? (:run cmd)))
+      (let [shell-arg (first (:args cmd))]
+        (is (= ["bash" "zsh" "fish"] (:complete shell-arg)))
+        (is (map? (:validate shell-arg))))))
+
+  (testing "is a no-op when the app already defines a completion command"
+    (let [custom (update app :commands conj {:name "completion"
+                                             :run (fn [_ctx] :custom)})
+          installed (completion/install-command custom)
+          completions (filter #(= "completion" (:name %)) (:commands installed))]
+      (is (= 1 (count completions)))
+      (is (= :custom ((:run (first completions)) {})))))
+
+  (testing "is a no-op when :completion? is false"
+    (is (nil? (find-completion-command
+                (completion/install-command (assoc app :completion? false))))))
+
+  (testing "candidates on the installed app offers completion and its shells"
+    (let [installed (completion/install-command app)]
+      (is (= ["bash" "zsh" "fish"] (completion/candidates installed ["completion"] "")))
+      (is (some #(= "completion" %) (completion/candidates installed [] ""))))))
+
 #?(:lg
    (do)
    :default

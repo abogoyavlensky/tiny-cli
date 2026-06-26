@@ -267,7 +267,7 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
 - Modify: `src/tiny_cli/completion.cljc`
 - Modify: `test/tiny_cli/completion_test.cljc`
 
-- [ ] **Step 1: Write failing tests for `install-command`**
+- [x] **Step 1: Write failing tests for `install-command`**
   Assert that `install-command` on an app without a `completion` command appends one
   that is `:hidden?`, named `"completion"`, has a `shell` arg with `:complete` equal to
   `["bash" "zsh" "fish"]` and a `:validate` map, and a callable `:run`. Assert it is a
@@ -276,11 +276,11 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   `candidates` on the *installed* app offers `"completion"` (e.g. `["completion"] ""`
   → `["bash" "zsh" "fish"]`, and `[] ""` includes `"completion"`).
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
   Run: `lgx test`
   Expected: FAIL — `install-command` is unbound.
 
-- [ ] **Step 3: Implement `install-command` and `complete!`**
+- [x] **Step 3: Implement `install-command` and `complete!`**
   Add private `completion-command` building the hidden spec (closing over `app` for
   `(:name app)`; `:run` = `(fn [ctx] (print (script app (:shell (:args ctx)))))`; the
   `shell` arg's `:validate` `:pred` checks membership in `#{"bash" "zsh" "fish"}` with
@@ -289,11 +289,11 @@ Once tiny-cli is released and wtr bumps the dep, wtr deletes `resources/completi
   already exists; otherwise append the generated command. Add public `complete!`:
   `(try (let [app (install-command app) words (vec (butlast argv)) cur (or (last argv) "")] (doseq [c (candidates app words cur)] (println c))) (catch Exception _ nil))`.
 
-- [ ] **Step 4: Run verification**
+- [x] **Step 4: Run verification**
   Run: `lgx test` then `lgx test-all`
   Expected: PASS on all runtimes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -m "feat: inject completion command and __complete endpoint"`
 
 ### Task 4: Core integration

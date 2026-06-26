@@ -213,3 +213,47 @@
       "zsh" (zsh-script name id)
       "fish" (fish-script name id)
       nil)))
+
+(def ^:private shells ["bash" "zsh" "fish"])
+
+(defn- valid-shell?
+  [s]
+  (some #(= s %) shells))
+
+(defn- completion-command
+  "The hidden built-in `completion <shell>` command. Closes over `app` for its
+   name; the shell arg is validated, so :run always receives a supported shell."
+  [app]
+  {:name "completion"
+   :doc "Print a shell completion script (bash, zsh, or fish)."
+   :hidden? true
+   :args [{:key :shell
+           :doc "Shell name: bash, zsh, or fish."
+           :validate {:pred valid-shell?
+                      :msg "Shell must be one of: bash, zsh, fish."}
+           :complete shells}]
+   :run (fn [ctx] (print (script app (:shell (:args ctx)))))})
+
+(defn install-command
+  "Append the built-in hidden `completion` command to `app`, unless completion is
+   disabled (`:completion? false`) or the app already defines its own
+   `completion` command. Idempotent."
+  [app]
+  (if (or (false? (:completion? app))
+          (find-command app "completion"))
+    app
+    (update app :commands conj (completion-command app))))
+
+(defn complete!
+  "I/O entry point for the hidden `<app> __complete` call the shell scripts make.
+   `argv` is the words typed after `__complete`; the last is the word under the
+   cursor (possibly empty). Prints one candidate per line. Never throws: a broken
+   completer must not break the user's shell, so on any error it prints nothing."
+  [app argv]
+  (try
+    (let [app (install-command app)
+          words (vec (butlast argv))
+          cur (or (last argv) "")]
+      (doseq [c (candidates app words cur)]
+        (println c)))
+    (catch Exception _ nil)))
