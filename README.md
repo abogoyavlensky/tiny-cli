@@ -32,7 +32,7 @@ Add `tiny-cli` to your dependencies at `lgx.edn` file:
 
 ```clojure
 {:deps {abogoyavlensky/tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
-                                 :git/sha "0.1.0"}}}
+                                 :git/tag "<TAG>"}}}
 ```
 
 Require the core namespace and use `run!` at the application edge:
