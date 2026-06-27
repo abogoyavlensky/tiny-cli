@@ -1,9 +1,23 @@
 # tiny-cli
 
-A zero-dependency CLI argument parser for [let-go](https://github.com/nooga/let-go), compatible with 
-[Clojure](https://clojure.org/index) and [Babashka](https://github.com/babashka/babashka). 
+A zero-dependency CLI argument parser for [let-go](https://github.com/nooga/let-go), [Clojure](https://clojure.org/index) and [Babashka](https://github.com/babashka/babashka). 
 It is small on purpose: flat commands, Unix-style options, generated help, 
 version output, and simple validation.
+
+## Features
+
+- **Plain-data spec.** Declare the whole CLI as one map.
+- **Unix-style options.** Short (`-v`) and long (`--verbose`) flags, `--opt value` 
+  or `--opt=value`, grouped short flags (`-vf`), global and per-command scopes.
+- **Positional and variadic args.** Fixed required positionals, plus an optional
+  variadic that collects the rest.
+- **Validation without coercion.** Per-arg and per-option `:validate` predicates.
+- **Generated help.** `--help`, `-h`, `help <command>`, `-v`, `--version`,
+  work with no extra code. Mark a command `:hidden?` to keep it out of help while it
+  still runs.
+- **Built-in shell completion.** A `completion` command prints a bash, zsh, or
+  fish script; commands, options, and `help` complete with zero config. Add
+  `:complete` to any arg or option to complete dynamic values.
 
 ## Getting Started
 
