@@ -19,7 +19,7 @@
                      {:sh "lgx lint"}
                      {:sh "lgx test-all"}]}                    
 
-         release {:doc "Release a new version"
+         release {:doc "Release a new version as a git tag (pass only numbers without a prefix)"
                   :args [{:name :version}]
                   :do [{:sh ["git" "tag" "v{{version}}"]}
                        {:sh "git push --tags"}]}}}
