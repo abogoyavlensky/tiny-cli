@@ -20,5 +20,6 @@
                      {:sh "lgx test-all"}]}                    
 
          release {:doc "Release a new version"
-                  :do [{:sh ["git" "tag" "v0.1.0"]}
+                  :args [{:name :version}]
+                  :do [{:sh ["git" "tag" "v{{version}}"]}
                        {:sh "git push --tags"}]}}}
