@@ -454,6 +454,11 @@ Pure and test-friendly helpers are also public:
 or `:error`. `run-result` calls the selected handler for `:ok` results without
 exiting, which makes command dispatch easy to test.
 
+## Projects using tiny-cli
+
+- [wtr](https://github.com/abogoyavlensky/wtr) - a git worktree CLI
+  built with let-go and lgx, using tiny-cli for argument parsing.
+
 ## Tests
 
 Run the shared `.cljc` test suite:
