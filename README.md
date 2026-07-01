@@ -24,15 +24,12 @@ version output, and simple validation.
 > [!NOTE]
 > [lgx](https://github.com/abogoyavlensky/lgx) is a dependency and project management tool for let-go.
 
-> [!IMPORTANT]
-> Requrements: `let-go >= 0.10.0`
-
 
 Add `tiny-cli` to your dependencies at `lgx.edn` file:
 
 ```clojure
-{:deps {abogoyavlensky/tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
-                                 :git/tag "<TAG>"}}}
+{:deps {tiny-cli {:git/url "https://github.com/abogoyavlensky/tiny-cli"
+                  :git/tag "<TAG>"}}}
 ```
 
 Require the core namespace and use `run!` at the application edge:
@@ -56,7 +53,7 @@ Require the core namespace and use `run!` at the application edge:
 (cli/run! app *command-line-args*)
 ```
 
-`app` is the CLI spec. `argv` is a vector of command-line tokens without the
+`app` is the CLI spec. Second argument is a vector of command-line tokens without the
 executable name or script path:
 
 ```clojure
@@ -67,7 +64,7 @@ executable name or script path:
 handlers, and exits for built-ins and parse errors. It does not catch handler
 exceptions.
 
-## Minimal let-go cli app
+## An example of a small CLI tool
 
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
@@ -153,78 +150,78 @@ Everything else is optional. The annotated reference below shows every key with
 its possible values; the sections that follow spell out the rules in detail.
 
 ```clojure
-{;; Executable name, shown in help, version, and usage lines. Required.
+{; Executable name, shown in help, version, and usage lines. Required.
  :name "tool-name"
 
- ;; Version string for `--version` and an unclaimed `-v`. When it is absent and
- ;; a version is requested, parsing returns "No version available."
+ ; Version string for `--version` and an unclaimed `-v`. When it is absent and
+ ; a version is requested, parsing returns "No version available."
  :version "0.1.0"
 
- ;; Root description shown at the top of root help.
+ ; Root description shown at the top of root help.
  :doc "Short app description."
 
- ;; Trailing text shown after the command list in root help.
+ ; Trailing text shown after the command list in root help.
  :footer "Run 'tool-name <command> --help' for more information on a command."
 
- ;; Set false to drop the built-in `completion` command and `__complete`
- ;; endpoint. Defaults to on. See Shell Completions.
+ ; Set false to drop the built-in `completion` command and `__complete`
+ ; endpoint. Defaults to on. See Shell Completions.
  :completion? true
 
- ;; Global option specs. They may appear before the command, and after it
- ;; unless a command option claims the same spelling. Each value lands in the
- ;; handler's :global map.
+ ; Global option specs. They may appear before the command, and after it
+ ; unless a command option claims the same spelling. Each value lands in the
+ ; handler's :global map.
  :opts
- [{;; Keyword used in the handler's :global map. Required.
+ [{; Keyword used in the handler's :global map. Required.
    :key :verbose?
-   ;; Short spelling without the leading "-". Give :short, :long, or both.
+   ; Short spelling without the leading "-". Give :short, :long, or both.
    :short "v"
-   ;; Long spelling without the leading "--".
+   ; Long spelling without the leading "--".
    :long "verbose"
-   ;; true consumes the next token as the option's value; omit it for a flag.
+   ; true consumes the next token as the option's value; omit it for a flag.
    :value? false
-   ;; Value placed in :global when the option is absent.
+   ; Value placed in :global when the option is absent.
    :default nil
-   ;; true rejects parsing when the option is missing.
+   ; true rejects parsing when the option is missing.
    :required? false
-   ;; {:pred fn :msg "message"}. The predicate receives the raw string value.
+   ; {:pred fn :msg "message"}. The predicate receives the raw string value.
    :validate {:pred some? :msg "..."}
-   ;; Value-completion candidates: a vector of strings or a (fn [ctx]) returning
-   ;; strings. See Shell Completions.
+   ; Value-completion candidates: a vector of strings or a (fn [ctx]) returning
+   ; strings. See Shell Completions.
    :complete ["a" "b"]
-   ;; Description shown in help.
+   ; Description shown in help.
    :doc "Print extra output."}]
 
- ;; Flat list of command specs. Required.
+ ; Flat list of command specs. Required.
  :commands
- [{;; Command token the user types. Required.
+ [{; Command token the user types. Required.
    :name "create"
-   ;; Command description shown in help.
+   ; Command description shown in help.
    :doc "Create an item."
-   ;; true hides the command from root help; it still runs, and
-   ;; `help <command>` still shows its help.
+   ; true hides the command from root help; it still runs, and
+   ; `help <command>` still shows its help.
    :hidden? false
-   ;; Fixed positional args, in order. Every declared arg is required.
+   ; Fixed positional args, in order. Every declared arg is required.
    :args
-   [{;; Keyword used in the handler's :args map. Required.
+   [{; Keyword used in the handler's :args map. Required.
      :key :name
-     ;; Description shown in command help.
+     ; Description shown in command help.
      :doc "Item name."
-     ;; {:pred fn :msg "message"} validation spec.
+     ; {:pred fn :msg "message"} validation spec.
      :validate {:pred non-blank? :msg "NAME is required."}
-     ;; Value-completion candidates: a vector of strings or a (fn [ctx]).
+     ; Value-completion candidates: a vector of strings or a (fn [ctx]).
      :complete (fn [ctx] (candidates ctx))}]
-   ;; One arg spec that slurps every token after the fixed :args into a vector.
-   ;; At most one per command. See Variadic Trailing Args.
+   ; One arg spec that slurps every token after the fixed :args into a vector.
+   ; At most one per command. See Variadic Trailing Args.
    :variadic {:key :cmd
               :doc "Command to run; omit for a shell."}
-   ;; Command-specific option specs, same shape as global :opts. Each value
-   ;; lands in the handler's :opts map.
+   ; Command-specific option specs, same shape as global :opts. Each value
+   ; lands in the handler's :opts map.
    :opts
    [{:key :force?
      :short "f"
      :long "force"
      :doc "Replace an existing item."}]
-   ;; Handler called with the parsed context map. Required. See Handler Context.
+   ; Handler called with the parsed context map. Required. See Handler Context.
    :run create!}]}
 ```
 
@@ -265,8 +262,8 @@ Options come before positional arguments. The first positional token ends
 option parsing for the command, so every token after it is a positional value:
 
 ```bash
-deploy --dry-run service --env prod api   ; ok
-deploy service api --env prod             ; error: Options must appear before arguments: --env
+deploy --dry-run service --env prod api   # ok
+deploy service api --env prod             # error: Options must appear before arguments: --env
 ```
 
 Global options, command options, and the built-ins (`--help`, `-h`,
@@ -296,10 +293,10 @@ token is appended verbatim — including option-like tokens and a literal `--` �
 so you don't need a `--` separator to pass flags through:
 
 ```bash
-tool run feat-x npm test            ; {:name "feat-x" :cmd ["npm" "test"]}
-tool run feat-x git status -s       ; :cmd ["git" "status" "-s"]
-tool run feat-x git checkout -- f   ; :cmd ["git" "checkout" "--" "f"]
-tool run feat-x                     ; :cmd []
+tool run feat-x npm test            # {:name "feat-x" :cmd ["npm" "test"]}
+tool run feat-x git status -s       # :cmd ["git" "status" "-s"]
+tool run feat-x git checkout -- f   # :cmd ["git" "checkout" "--" "f"]
+tool run feat-x                     # :cmd []
 ```
 
 The variadic key lands in the handler's `:args` map alongside the fixed args.
@@ -308,36 +305,6 @@ declare its own `:opts`, but every option — global or command — must come
 before the first positional; once the fixed args start, every remaining token
 is slurped into the variadic vector. The fixed args remain required; omitting
 them is still a `Missing argument` error.
-
-## Running Under lgx (`--` and `LGX_RUN`)
-
-A tool built with [lgx](https://github.com/abogoyavlensky/lgx) runs two ways:
-as a bundled binary (`tool run …`) and in development via `lgx run -- run …`.
-`lgx run` injects a `--` marker before your app args, so the conventional way to
-recover them is:
-
-```clojure
-(rest (drop-while #(not= "--" %) (os/args)))   ; dev: drop up to lgx's marker
-```
-
-But that idiom is wrong for a *bundled* binary, where there is no marker and a
-`--` may legitimately appear inside the user's command (e.g. `git checkout --`).
-Detect the mode out-of-band instead of sniffing for `--`. `lgx run` sets
-`LGX_RUN=1` in the spawned process, so:
-
-```clojure
-(defn- strip-runner-args
-  "Application args from a raw argv, in both run modes."
-  [argv lgx-run?]
-  (if lgx-run?
-    (rest (drop-while #(not= "--" %) argv))   ; dev: drop up to & incl marker
-    (rest argv)))                              ; bundled: drop argv[0]
-
-(strip-runner-args (os/args) (not (str/blank? (os/getenv "LGX_RUN"))))
-```
-
-This keeps a literal `--` inside a variadic command intact when running as a
-binary. See lgx's README for the `LGX_RUN` contract.
 
 ## Built-In Commands and Options
 
