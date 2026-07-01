@@ -54,11 +54,7 @@ Require the core namespace and use `run!` at the application edge:
 ```
 
 `app` is the CLI spec. Second argument is a vector of command-line tokens without the
-executable name or script path:
-
-```clojure
-(cli/run! app *command-line-args*))
-```
+executable name or script path.
 
 `run!` parses args, prints help, version, and parse errors, invokes command
 handlers, and exits for built-ins and parse errors. It does not catch handler
