@@ -138,8 +138,8 @@ Testing should focus on `root-help`:
   Expected: PASS across let-go, Clojure, and Babashka.
 
 - [x] **Step 7: Check formatting**
-  Run: `lgx fmt-check`
-  Expected: PASS. If it fails, run `lgx fmt`, then rerun `lgx fmt-check`.
+  Run: `lgx fmt check`
+  Expected: PASS. If it fails, run `lgx fmt`, then rerun `lgx fmt check`.
 
 - [x] **Step 8: Commit**
   Run: `git commit -am "Split root help usage and commands"`
@@ -181,7 +181,7 @@ Testing should focus on `root-help`:
 ## Final Verification
 
 - [x] Run `lgx test-all`.
-- [x] Run `lgx fmt-check`.
+- [x] Run `lgx fmt check`.
 - [x] Confirm root help uses `Usage:` for the generic grammar and `Commands:`
   for compact command rows.
 - [x] Confirm command help remains unchanged.
@@ -197,7 +197,7 @@ Implemented as planned.
 - Updated root-help tests for the new section split and preserved command-help
   coverage.
 - Updated the README deploy example to match rendered output.
-- Verification passed with `lgx test-all`, `lgx fmt-check`, and an explicit
+- Verification passed with `lgx test-all`, `lgx fmt check`, and an explicit
   output-shape check for root help and command help.
 
 Codex review checkpoints completed. Task 1 reported README documentation drift,

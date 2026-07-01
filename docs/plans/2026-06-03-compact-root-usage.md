@@ -4,7 +4,7 @@
 
 **Goal:** Make root help (`tool --help`) show compact per-command usage patterns in the `Usage:` section and remove the separate `Commands:` section.
 
-**Tech Stack:** Clojure `.cljc` (cross-target: let-go, Clojure, Babashka), tested via `lgx test-all`, formatted via `lgx fmt-check`.
+**Tech Stack:** Clojure `.cljc` (cross-target: let-go, Clojure, Babashka), tested via `lgx test-all`, formatted via `lgx fmt check`.
 
 ---
 
@@ -191,8 +191,8 @@ Use focused rendering tests around `root-help`:
   Expected: PASS across let-go, Clojure, and Babashka.
 
 - [x] **Step 8: Check formatting**
-  Run: `lgx fmt-check`
-  Expected: clean. If it fails, run `lgx fmt` and then rerun `lgx fmt-check`.
+  Run: `lgx fmt check`
+  Expected: clean. If it fails, run `lgx fmt` and then rerun `lgx fmt check`.
 
 - [x] **Step 9: Commit**
   `git commit -m "Render compact command usage in root help"`
@@ -234,7 +234,7 @@ Run from the repo root:
 ```bash
 lgx test
 lgx test-all
-lgx fmt-check
+lgx fmt check
 ```
 
 Expected final result: all tests pass, formatting is clean, root help has no
@@ -262,7 +262,7 @@ Both tasks are complete.
   `Global Options:` assertions (via a new `section` test helper), omission of an
   empty `Global Options:` block, and shared-column alignment across command and
   built-in rows. Final suite: 10 tests, 191 assertions, 0 failures across let-go,
-  Clojure, and Babashka; `lgx fmt-check` clean.
+  Clojure, and Babashka; `lgx fmt check` clean.
 
 **Task 2 — Docs (`README.md`):** replaced the deploy root-help example with the
 new compact layout and verified it byte-for-byte against rendered `root-help`

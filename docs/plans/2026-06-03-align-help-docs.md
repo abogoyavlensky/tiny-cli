@@ -175,7 +175,7 @@ long-label row, and a built-in row — proving alignment, not mere presence.
   all existing `re-find` help tests.
 
 - [x] **Step 5: Check formatting**
-  Run: `lgx fmt-check`
+  Run: `lgx fmt check`
   Expected: clean (run `lgx fmt` to fix if needed).
 
 - [x] **Step 6: Commit**
@@ -220,7 +220,7 @@ Run from the repo root:
 
 ```bash
 lgx test-all
-lgx fmt-check
+lgx fmt check
 ```
 
 Expected:
@@ -267,10 +267,10 @@ rendered output. The command-help example is all single-row sections, so it was
 unchanged.
 
 Verification: `lgx test-all` passes on let-go, Clojure, and Babashka (10 tests,
-183 assertions, 0 failures); `lgx fmt-check` clean. The new alignment
+183 assertions, 0 failures); `lgx fmt check` clean. The new alignment
 assertions failed as expected before implementation (5 failures) and pass after.
 A `review-with-codex` second-opinion review of the uncommitted code change
-returned no findings (codex independently ran the suite and fmt-check).
+returned no findings (codex independently ran the suite and fmt check).
 
 Commits: `24999b5` (core + tests), `782b33f` (README). The plan itself was
 committed earlier as `7b06a3f`.

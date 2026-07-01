@@ -1,15 +1,15 @@
 {:paths ["src"]
- :lg-version "1.10.0"
+ :lg-version "1.11.1"
  :tasks {test-all {:doc "Run all integration tests"
                    :do [{:sh "lgx test"}
                         {:sh "clojure -M -e \"(require 'tiny-cli.core-test) (require 'tiny-cli.completion-test)\""}
                         {:sh "bb -cp src:test -e \"(require 'tiny-cli.core-test) (require 'tiny-cli.completion-test)\""}]}
          
-         fmt {:doc "Format source files"
-              :do [{:sh "cljfmt fix"}]}
-         
-         fmt-check {:doc "Check source file formatting"
-                    :do [{:sh "cljfmt check"}]}
+         fmt {:doc "Format source files (available actions: fix, check; default: fix)"
+              :args [{:name :action
+                      :type [:enum "fix" "check"]
+                      :default "fix"}]
+              :do [{:sh "cljfmt {{action}}"}]}
          
          lint {:doc "Lint source files"
                :do [{:sh "clj-kondo --parallel --lint src test"}]}
