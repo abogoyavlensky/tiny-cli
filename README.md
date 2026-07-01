@@ -130,6 +130,29 @@ lgx build
 deploy --dry-run service --env prod api
 ```
 
+Root help will look like:
+
+```bash
+For the deploy example, root help looks like this:
+
+```text
+deploy - Deploy one service.
+
+Usage:
+  deploy [global options] <command> [options] [args]
+
+Commands:
+  deploy service <SERVICE>  Deploy a service.
+  deploy help [command]     Show a command help.
+  deploy --help             Show the tool help.
+  deploy --version          Print version.
+
+Global Options:
+  -n, --dry-run  Print the deployment plan.
+
+Run 'deploy <command> --help' for more information on a command.
+```
+
 ## App Spec Reference
 
 The first argument to `run!` is the app spec, plain data. The smallest valid
@@ -333,26 +356,6 @@ tool -v
 when it is not claimed by a global option before the command, or by a global or
 command option after the command. If version is requested and `:version` is
 missing, parsing returns `No version available.`
-
-For the deploy example, root help looks like this:
-
-```text
-deploy - Deploy one service.
-
-Usage:
-  deploy [global options] <command> [options] [args]
-
-Commands:
-  deploy service <SERVICE>  Deploy a service.
-  deploy help [command]     Show a command help.
-  deploy --help             Show the tool help.
-  deploy --version          Print version.
-
-Global Options:
-  -n, --dry-run  Print the deployment plan.
-
-Run 'deploy <command> --help' for more information on a command.
-```
 
 Command help looks like this:
 
