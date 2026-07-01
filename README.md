@@ -64,7 +64,7 @@ executable name or script path:
 handlers, and exits for built-ins and parse errors. It does not catch handler
 exceptions.
 
-## An example of a small CLI tool
+## An example of a small CLI tool in let-go
 
 This is a small deploy helper as an interpreted let-go script. It accepts one
 command, one required positional arg, one command option, and one global flag.
