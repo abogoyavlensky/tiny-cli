@@ -186,6 +186,14 @@ its possible values; the sections that follow spell out the rules in detail.
  ; endpoint. Defaults to on. See Shell Completions.
  :completion? true
 
+ ; Optional handler run when no command is named (a bare invocation), letting
+ ; the tool do something other than print root help. It receives the same
+ ; context map as a command handler, with :args and :opts empty and :global
+ ; holding any global options that were parsed. `--help`, `-h`, `help`, and
+ ; `--version` still take precedence; when :run is absent, a bare invocation
+ ; prints root help as before.
+ :run (fn [_ctx] (println "no command given"))
+
  ; Global option specs. They may appear before the command, and after it
  ; unless a command option claims the same spelling. Each value lands in the
  ; handler's :global map.

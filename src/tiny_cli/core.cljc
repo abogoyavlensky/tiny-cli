@@ -436,6 +436,9 @@
     (first-option-conflict app)
     (error-result (str "Option conflict: " (first-option-conflict app)))
 
+    (and (contains? app :run) (not (fn? (:run app))))
+    (error-result "App :run must be a function.")
+
     :else
     (first-command-spec-error app)))
 
@@ -660,9 +663,21 @@
                 {:status :ok
                  :command command
                  :context context}))
-            {:status :help
-             :command nil
-             :text (root-help app)}))))))
+            ;; No command named. Dispatch the app's root handler when it has
+            ;; one; otherwise fall back to root help (the default). Every
+            ;; help/version path returns from inside the loop above, so only a
+            ;; genuinely bare invocation — every token consumed as a global
+            ;; option — reaches here.
+            (if (:run app)
+              (let [context (finalize-context app {} state)]
+                (if (= :error (:status context))
+                  context
+                  {:status :ok
+                   :command {:run (:run app)}
+                   :context context}))
+              {:status :help
+               :command nil
+               :text (root-help app)})))))))
 
 (defn run-result
   [app argv]
