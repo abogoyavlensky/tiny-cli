@@ -842,6 +842,56 @@
       (is (= :ok (:status (cli/parse vec-app ["go" "v"]))))
       (is (= :ok (:status (cli/parse fn-app ["go" "v"])))))))
 
+(defn root! [ctx] {:ran true
+                   :ctx ctx})
+
+(def root-app
+  {:name "wtr"
+   :version "0.1.0"
+   :doc "Small git worktree helper."
+   :opts [{:key :verbose?
+           :short "v"
+           :long "verbose"
+           :doc "Print executed commands."}]
+   :run root!
+   :commands [{:name "create"
+               :args [{:key :branch}]
+               :run create!}]})
+
+(deftest root-command-handler
+  (testing "bare invocation with :run dispatches the root handler"
+    (let [result (cli/parse root-app [])]
+      (is (= :ok (:status result)))
+      (is (fn? (:run (:command result))))
+      (is (= {} (get-in result [:context :args])))
+      (is (= {} (get-in result [:context :opts])))))
+
+  (testing "run-result invokes the root handler and returns its value"
+    (let [result (cli/run-result root-app [])]
+      (is (= :ok (:status result)))
+      (is (= true (:ran (:result result))))))
+
+  (testing "global options before the bare invocation reach the handler"
+    (let [result (cli/parse root-app ["--verbose"])]
+      (is (= :ok (:status result)))
+      (is (= {:verbose? true} (get-in result [:context :global])))))
+
+  (testing "without :run, a bare invocation still falls back to root help"
+    (let [result (cli/parse app [])]
+      (is (= :help (:status result)))
+      (is (string? (:text result)))))
+
+  (testing "help and version still win over a root handler"
+    (is (= :help (:status (cli/parse root-app ["--help"]))))
+    (is (= :help (:status (cli/parse root-app ["-h"]))))
+    (is (= :help (:status (cli/parse root-app ["help"]))))
+    (is (= :version (:status (cli/parse root-app ["--version"])))))
+
+  (testing "a non-fn :run is a spec error"
+    (let [result (cli/parse (assoc root-app :run 42) [])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #":run" (:message result)))))))
+
 #?(:lg
    (do)
    :default
