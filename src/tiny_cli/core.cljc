@@ -684,15 +684,25 @@
       (assoc result :result ((:run (:command result)) (:context result)))
       result)))
 
+;; print then flush: run! calls System/exit right after writing, and the
+;; JVM/Babashka exit discards anything still buffered in the stream. The :lg
+;; branch must exist — let-go's whole-file loader drops everything after a
+;; top-level reader conditional with no matching branch.
+#?(:lg (do)
+   :clj (defn- print-flush!
+          [s]
+          (print s)
+          (flush)))
+
 (defn- write-out!
   [s]
   #?(:lg (write! *out* s)
-     :default (print s)))
+     :default (print-flush! s)))
 
 (defn- write-err!
   [s]
   #?(:lg (write! *err* s)
-     :default (binding [*out* *err*] (print s))))
+     :default (binding [*out* *err*] (print-flush! s))))
 
 (defn- exit!
   [code]
