@@ -173,20 +173,22 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 - Modify: `README.md`
 - Modify: `docs/initial_design.md`
 
-- [ ] **Step 1: Rewrite the README "Option Ordering" section**
+- [x] **Step 1: Rewrite the README "Option Ordering" section**
   New rule statement: on regular commands, options and positional args interleave freely — before, between, or after (`deploy service api --env prod` now works). Built-ins (`--help/-h`, `--version/-v`) follow the same rule. On variadic commands, options must come before the first positional; after it, every token is payload. `--` still ends option parsing anywhere, letting a positional start with a dash. Replace the current `# error:` example line with a valid interleaved example plus a variadic counter-example.
 
-- [ ] **Step 2: Update the "Variadic Trailing Args" section**
+- [x] **Step 2: Update the "Variadic Trailing Args" section**
   Adjust the constraints paragraph: options-before-positionals now applies *only* to variadic commands (it currently reads as the universal rule). Keep the rest-mode description as-is.
 
-- [ ] **Step 3: Update `docs/initial_design.md`**
+- [x] **Step 3: Update `docs/initial_design.md`**
   Revise any "options must come before positionals" parsing-rule claims to the new split rule (interleaved for regular commands, options-first for variadic).
 
-- [ ] **Step 4: Re-read both docs for internal consistency**
+- [x] **Step 4: Re-read both docs for internal consistency**
   Confirm every example invocation parses under the new rule and no stale ordering-error wording remains. Run `grep -rn "Options must appear before" README.md docs src test` — expected: no matches outside `docs/plans/`. Use /writing-clearly for the new prose.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   `git commit -am "docs: document interleaved option ordering"`
+
+> Deviation: none. Grep confirms the removed error message survives only in historical `docs/plans/` files. Codex review of Task 3 commit: no findings.
 
 ## Task 5: Full cross-runtime verification
 

@@ -444,8 +444,9 @@ tool create item -v
 ```
 
 On a regular command, options and positional arguments interleave freely. On
-a variadic command, the first positional starts the trailing payload, so
-options must precede it; every later token is payload.
+a variadic command, the first positional ends option parsing, so options must
+precede it; every later token is read as a positional, filling the remaining
+fixed args before the variadic vector.
 
 Command options are parsed only after the command is selected.
 
@@ -458,7 +459,8 @@ Recommended rule for simplicity:
 - After the command token: command and global options are both accepted,
   interleaved with the positionals.
 - On a variadic command, after the first positional: no options are parsed;
-  every token joins the payload.
+  every token is a positional (remaining fixed args first, then the variadic
+  vector).
 - If the same option spelling exists in both places, it is a spec error.
 
 ### Supported Option Forms

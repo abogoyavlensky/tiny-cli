@@ -299,9 +299,10 @@ Global options, command options, and the built-ins (`--help`, `-h`,
 `--version`, `-v`) all follow this rule. A global option may also sit before
 the command (`deploy --dry-run service ...`).
 
-Variadic commands are the exception: the first positional starts the trailing
-payload, so options must come before it. Every later token belongs to the
-payload, even when it looks like an option:
+Variadic commands are the exception: the first positional ends option parsing,
+so options must come before it. Every later token is read as a positional —
+even when it looks like an option — filling the remaining fixed args first and
+then accumulating in the variadic vector:
 
 ```bash
 tool run --detach feat-x npm test   # --detach is an option for run
