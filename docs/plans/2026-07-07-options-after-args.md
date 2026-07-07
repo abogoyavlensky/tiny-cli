@@ -188,20 +188,20 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 - [x] **Step 5: Commit**
   `git commit -am "docs: document interleaved option ordering"`
 
-> Deviation: none. Grep confirms the removed error message survives only in historical `docs/plans/` files. Codex review of Task 3 commit: no findings.
+> Deviation: none. Grep confirms the removed error message survives only in historical `docs/plans/` files. Codex review of Task 3 commit: no findings. Codex review of the Task 4 commit found one P2 (wording implied all tokens after a variadic's first positional land in the variadic vector, skipping remaining fixed args) — fixed in follow-up commit `15a5811`.
 
 ## Task 5: Full cross-runtime verification
 
-- [ ] **Step 1: Format and lint**
+- [x] **Step 1: Format and lint**
   Run: `lgx fmt` then `lgx lint`
   Expected: no formatting changes, no lint findings.
 
-- [ ] **Step 2: Run the full suite on all runtimes**
+- [x] **Step 2: Run the full suite on all runtimes**
   Run: `lgx test-all`
   Expected: PASS on let-go, Clojure, and Babashka.
 
-- [ ] **Step 3: Commit any remaining changes**
-  Only if steps 1–2 produced fixes.
+- [x] **Step 3: Commit any remaining changes**
+  Only if steps 1–2 produced fixes. (None needed — fmt and lint were clean.)
 
 ---
 
@@ -209,3 +209,28 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 
 - No changes to help rendering: usage strings keep showing `[options]` before the args placeholders — a conventional summary, not a strict grammar.
 - No changes to the `wtr` consumer; the change is purely permissive, so nothing downstream breaks.
+
+---
+
+## Completion Summary (2026-07-08)
+
+**Status: completed.** All five tasks implemented and committed on `options-after-args`:
+
+- `2b9e1b7` feat: allow options after positional args on non-variadic commands
+- `6e9f4d1` feat: complete flags after positional args in shell completion
+- `fce8547` fix: treat variadic payload words as positionals in completion
+- `b13caca` docs: document interleaved option ordering
+- `15a5811` docs: clarify fixed args fill before the variadic payload (codex fixup)
+
+**What was implemented:** Non-variadic commands now accept options before, between, or after positional args; the `Options must appear before arguments` error is gone. Variadic commands are unchanged (options before the first positional; everything after is payload). Built-ins (`--help`, `--version`, unclaimed `-v`) fire after positionals on regular commands. Shell completion follows the parser on both counts: flags are offered after positionals on regular commands, and variadic payload words (including dash words and value-option spellings) count as positionals.
+
+**Verification:** `lgx fmt` clean, `lgx lint` 0 findings, `lgx test-all` green on let-go/Clojure/Babashka (20 tests, 310 assertions on let-go). End-to-end pass on the let-go runtime with a demo app: interleaved parsing, `=` options, built-ins after positionals, `--` handling, variadic payload, and `__complete` output all behave per the new rule.
+
+**Deviations (all minor, gathered):**
+- Task 1: two existing tests asserted the old rejection, not just the one the plan named — both rewritten.
+- Task 4: codex found the new variadic wording implied later tokens skip remaining fixed args — fixed in `15a5811`.
+- Session task-list tooling (TaskCreate/TaskUpdate) was unavailable; this document was the sole tracking surface.
+
+**Issue found (pre-existing, out of scope):** on Babashka/JVM, `run!`'s help/version/error text is lost because `write-out!`/`write-err!` use `print` without `flush` before `System/exit`. Present on master too; worth a separate fix.
+
+**What the plan could have specified better:** it named one rejection test to rewrite in Task 1 but a second test also asserted the old ordering error; otherwise it held up.
