@@ -117,25 +117,27 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 - Modify: `src/tiny_cli/completion.cljc`
 - Test: `test/tiny_cli/completion_test.cljc`
 
-- [ ] **Step 1: Update and add the failing tests** (in `deftest candidates-flags`)
+- [x] **Step 1: Update and add the failing tests** (in `deftest candidates-flags`)
   - Rewrite "no flags after a positional (tiny-cli rejects options there)" into "flags after a positional on a regular command": same input, now expects the global + command long flags plus `--help`.
   - Add "no flags after the first positional on a variadic command": with a variadic fixture (mirror `run-app` from core_test), words like `["run" "feat-x"]` and cur `"-"` → `[]`.
   - Add "flags before the first positional on a variadic command still complete": words `["run"]`, cur `"-"` → the flag list.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — flags are currently suppressed whenever positionals exist.
 
-- [ ] **Step 3: Implement the gate change**
+- [x] **Step 3: Implement the gate change**
   In `candidates`, change the flag-branch condition from `(and (str/starts-with? cur "-") (empty? positionals))` to also allow the case where `command` is a map without `:variadic`, e.g. `(and (str/starts-with? cur "-") (or (empty? positionals) (and (map? command) (not (:variadic command)))))`. Update the `candidates` docstring if it mentions ordering.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "feat: complete flags after positional args in shell completion"`
+
+> Deviation: none. Only one test failed at Step 2 (the two variadic cases already passed under the old gate). The `candidates` docstring doesn't mention ordering, so no docstring change was needed.
 
 ## Task 3: Completion counts variadic payload words as positionals
 

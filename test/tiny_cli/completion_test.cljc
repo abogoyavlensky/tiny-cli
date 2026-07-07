@@ -87,6 +87,30 @@
   (testing "the variadic tail offers nothing (shell falls back to files)"
     (is (= [] (completion/candidates app ["run" "feat-x"] "")))))
 
+;; Variadic payload counting: once a variadic command has its first positional,
+;; every remaining word is payload — even dash words and value-option spellings.
+(def variadic-app
+  {:name "vly"
+   :opts [{:key :base-dir
+           :long "base-dir"
+           :value? true
+           :complete ["/tmp" "/srv"]}]
+   :commands [{:name "deploy"
+               :args [{:key :service}
+                      {:key :env
+                       :complete ["dev" "prod"]}]
+               :variadic {:key :cmd}}
+              {:name "run"
+               :args [{:key :name}]
+               :variadic {:key :cmd}}]})
+
+(deftest candidates-variadic-payload
+  (testing "a dash word in the variadic payload counts as a positional"
+    (is (= [] (completion/candidates variadic-app ["deploy" "svc" "-x"] ""))))
+
+  (testing "a value-option spelling inside the payload does not swallow the next word"
+    (is (= [] (completion/candidates variadic-app ["run" "feat-x" "--base-dir"] "")))))
+
 (deftest candidates-option-value
   (testing "a value-taking long option completes its :complete"
     (is (= ["main" "dev"] (completion/candidates app ["create" "--from"] "")))
