@@ -285,18 +285,31 @@ options, and runs validation predicates, but it does not coerce types.
 
 ## Option Ordering
 
-Options come before positional arguments. The first positional token ends
-option parsing for the command, so every token after it is a positional value:
+On a regular command, options and positional arguments interleave freely:
+an option may appear before, between, or after the positionals, and all
+orderings parse identically:
 
 ```bash
 deploy --dry-run service --env prod api   # ok
-deploy service api --env prod             # error: Options must appear before arguments: --env
+deploy service api --env prod             # ok, same result
+deploy service --env prod api             # ok, same result
 ```
 
 Global options, command options, and the built-ins (`--help`, `-h`,
 `--version`, `-v`) all follow this rule. A global option may also sit before
-the command (`deploy --dry-run service ...`). Use `--` to end option parsing
-explicitly, which lets a positional value start with a dash:
+the command (`deploy --dry-run service ...`).
+
+Variadic commands are the exception: the first positional starts the trailing
+payload, so options must come before it. Every later token belongs to the
+payload, even when it looks like an option:
+
+```bash
+tool run --detach feat-x npm test   # --detach is an option for run
+tool run feat-x npm test --detach   # --detach is part of :cmd
+```
+
+Use `--` to end option parsing explicitly, which lets a positional value start
+with a dash:
 
 ```bash
 deploy service -- --weird-name
@@ -328,10 +341,10 @@ tool run feat-x                     # :cmd []
 
 The variadic key lands in the handler's `:args` map alongside the fixed args.
 Constraints: the variadic must be the only one per command. A command may
-declare its own `:opts`, but every option — global or command — must come
-before the first positional; once the fixed args start, every remaining token
-is slurped into the variadic vector. The fixed args remain required; omitting
-them is still a `Missing argument` error.
+declare its own `:opts`, but unlike regular commands, every option — global or
+command — must come before the first positional; once the fixed args start,
+every remaining token is slurped into the variadic vector. The fixed args
+remain required; omitting them is still a `Missing argument` error.
 
 ## Built-In Commands and Options
 

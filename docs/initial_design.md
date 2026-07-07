@@ -435,15 +435,17 @@ tool -v create item
 
 Command is `create`.
 
-A global option can appear before the command or after it, as long as it
-precedes the command's positional arguments:
+A global option can appear before the command or anywhere after it:
 
 ```bash
 tool -v create item
 tool create -v item
+tool create item -v
 ```
 
-The first positional token ends option parsing; an option after it is an error.
+On a regular command, options and positional arguments interleave freely. On
+a variadic command, the first positional starts the trailing payload, so
+options must precede it; every later token is payload.
 
 Command options are parsed only after the command is selected.
 
@@ -453,9 +455,10 @@ error.
 Recommended rule for simplicity:
 
 - Before the command token: only global options are parsed.
-- After the command token and before the first positional: command and global
-  options are both accepted.
-- After the first positional: no options are parsed.
+- After the command token: command and global options are both accepted,
+  interleaved with the positionals.
+- On a variadic command, after the first positional: no options are parsed;
+  every token joins the payload.
 - If the same option spelling exists in both places, it is a spec error.
 
 ### Supported Option Forms

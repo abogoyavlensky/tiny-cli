@@ -145,25 +145,27 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 - Modify: `src/tiny_cli/completion.cljc`
 - Test: `test/tiny_cli/completion_test.cljc`
 
-- [ ] **Step 1: Add the failing tests**
+- [x] **Step 1: Add the failing tests**
   - Add a fixture: a variadic command with **two** fixed args where the second fixed arg has a `:complete` list, plus a global value-taking option with a `:complete` list.
   - Add "a dash word in the variadic payload counts as a positional": words `[cmd "a" "-x"]`, cur `""` → the second fixed arg's candidates are **not** offered (the cursor is on the variadic slot), i.e. result `[]` or the variadic's candidates if it has `:complete`.
   - Add "a value-option spelling inside the payload does not swallow the next word": on a one-fixed-arg variadic command, words `[cmd "feat-x" "--base-dir"]`, cur `""` → not the option's `:complete` candidates (the parser treats `--base-dir` as payload), expected `[]`.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — `split-context` skips dash words and honors value options inside the payload.
 
-- [ ] **Step 3: Implement the payload check**
+- [x] **Step 3: Implement the payload check**
   In `split-context`, add a branch **before** the `value-opt` and `(str/starts-with? w "-")` checks: when `command` is a map, has `:variadic`, and `positionals` is non-empty, recur with the word conj'd onto `positionals`. Update the docstring to state the variadic-payload rule.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "fix: treat variadic payload words as positionals in completion"`
+
+> Deviation: none. Codex review of Task 2 commit: no findings.
 
 ## Task 4: Update documentation
 
