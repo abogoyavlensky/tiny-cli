@@ -57,8 +57,16 @@
     (is (= ["--base-dir" "--force" "--help"]
            (completion/candidates app ["remove"] "-"))))
 
-  (testing "no flags after a positional (tiny-cli rejects options there)"
-    (is (= [] (completion/candidates app ["remove" "feat-x"] "-")))))
+  (testing "flags after a positional on a regular command"
+    (is (= ["--base-dir" "--force" "--help"]
+           (completion/candidates app ["remove" "feat-x"] "-"))))
+
+  (testing "no flags after the first positional on a variadic command"
+    (is (= [] (completion/candidates app ["run" "feat-x"] "-"))))
+
+  (testing "flags before the first positional on a variadic command still complete"
+    (is (= ["--base-dir" "--help"]
+           (completion/candidates app ["run"] "-")))))
 
 (deftest candidates-positional-complete
   (testing "a fn :complete supplies the positional candidates"

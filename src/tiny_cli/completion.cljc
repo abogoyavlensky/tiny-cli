@@ -115,7 +115,12 @@
         (= :unknown command)
         []
 
-        (and (str/starts-with? cur "-") (empty? positionals))
+        ;; Flags: always offered on a non-variadic command (options interleave
+        ;; with positionals); on a variadic command only before the first
+        ;; positional, since after it every word is payload.
+        (and (str/starts-with? cur "-")
+             (or (empty? positionals)
+                 (and (map? command) (not (:variadic command)))))
         (if (map? command)
           (concat (long-flags (:opts app))
                   (long-flags (:opts command))

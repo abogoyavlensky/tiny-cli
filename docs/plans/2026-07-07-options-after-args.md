@@ -79,7 +79,7 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
 - Modify: `src/tiny_cli/core.cljc`
 - Test: `test/tiny_cli/core_test.cljc`
 
-- [ ] **Step 1: Update and add the failing tests** (in `deftest option-parsing`, using the existing `app` fixture with the `create` command)
+- [x] **Step 1: Update and add the failing tests** (in `deftest option-parsing`, using the existing `app` fixture with the `create` command)
   - Rewrite "rejects an option after a positional arg" into "parses an option after a positional arg": `["create" "feature/login" "--base" "main"]` → `:ok`, `:args {:branch "feature/login"}`, `:opts` contains `:base "main"`.
   - Add "parses an `=` option after a positional arg": `["create" "feature/login" "--base=main"]` → `:ok`, same result.
   - Add "parses a global option after a positional arg": `["create" "feature/login" "--verbose"]` (or the fixture's actual global flag) → `:ok`, flag lands in `:global`.
@@ -91,23 +91,25 @@ Unit tests drive `cli/parse` and `completion/candidates` directly (pure, no exit
   - Add "`--` after a positional still ends option parsing": on the two-fixed-arg fixture, `[cmd "a" "--" "-b"]` → `:ok` with `"-b"` as the second positional.
   - Do **not** touch `deftest variadic-args` — it locks the unchanged variadic behavior.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
   Run: `lgx test`
   Expected: FAIL — the new cases hit `Options must appear before arguments`.
 
-- [ ] **Step 3: Implement the parse-loop change**
+- [x] **Step 3: Implement the parse-loop change**
   In `parse` (`src/tiny_cli/core.cljc`):
   - In the `:else` (first-positional) branch, set `:phase :args` only when `(:variadic command)`; otherwise keep `:phase :options` and just conj the positional.
   - Simplify the `(not= :options (:phase state))` branch to an unconditional positional conj; delete the `option-token?` error check and the `Options must appear before arguments` message.
   - Update the phase comment block above that branch to describe the new model: `:args` is variadic rest-mode, `:args-raw` is post-`--`, non-variadic commands interleave.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
   Run: `lgx test`
   Expected: PASS — including the untouched `variadic-args` deftest.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
   Run: `lgx fmt`
   `git commit -am "feat: allow options after positional args on non-variadic commands"`
+
+> Deviation: two existing tests asserted the old rejection (the named one plus "parses command option before the positional; rejects it after") — both rewritten to expect `:ok`. Codex review: one P2 (completion still on old rule) — addressed by Task 2 as planned.
 
 ## Task 2: Completion offers flags after positionals (non-variadic)
 
