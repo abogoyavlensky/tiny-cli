@@ -148,6 +148,16 @@
                        :long "dry-run"}]
                :run create!}]})
 
+(def two-arg-app
+  {:name "cp"
+   :commands [{:name "copy"
+               :args [{:key :src}
+                      {:key :dst}]
+               :opts [{:key :force?
+                       :short "f"
+                       :long "force"}]
+               :run create!}]})
+
 (deftest option-parsing
   (testing "parses global option before command"
     (let [result (cli/parse app ["-v" "create" "feature/login"])]
@@ -161,13 +171,21 @@
       (is (= {:verbose? true} (get-in result [:context :global])))
       (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
-  (testing "parses command option before the positional; rejects it after"
+  (testing "parses command option before or after the positional"
     (let [before (cli/parse app ["create" "--base" "main" "feature/login"])
           after (cli/parse app ["create" "feature/login" "--base" "main"])]
       (is (= :ok (:status before)))
       (is (= "main" (get-in before [:context :opts :base])))
-      (is (= :error (:status after)))
-      (is (some? (re-find #"Options must appear before" (:message after))))))
+      (is (= {:branch "feature/login"} (get-in before [:context :args])))
+      (is (= :ok (:status after)))
+      (is (= "main" (get-in after [:context :opts :base])))
+      (is (= {:branch "feature/login"} (get-in after [:context :args])))))
+
+  (testing "parses an = option after a positional arg"
+    (let [result (cli/parse app ["create" "feature/login" "--base=main"])]
+      (is (= :ok (:status result)))
+      (is (= "main" (get-in result [:context :opts :base])))
+      (is (= {:branch "feature/login"} (get-in result [:context :args])))))
 
   (testing "parses long value option with equals"
     (let [result (cli/parse app ["create" "--base=main" "feature/login"])]
@@ -227,10 +245,44 @@
       (is (= :error (:status result)))
       (is (some? (re-find #"Missing value" (:message result))))))
 
-  (testing "rejects an option after a positional arg"
+  (testing "parses a global option after a positional arg"
     (let [result (cli/parse app ["create" "feature/login" "--verbose"])]
+      (is (= :ok (:status result)))
+      (is (= {:verbose? true} (get-in result [:context :global])))
+      (is (= {:branch "feature/login"} (get-in result [:context :args])))))
+
+  (testing "interleaves options and positionals"
+    (let [result (cli/parse two-arg-app ["copy" "a" "--force" "b"])]
+      (is (= :ok (:status result)))
+      (is (= {:src "a"
+              :dst "b"} (get-in result [:context :args])))
+      (is (= {:force? true} (get-in result [:context :opts])))))
+
+  (testing "unknown option after a positional is an error"
+    (let [result (cli/parse app ["create" "feature/login" "--unknown"])]
       (is (= :error (:status result)))
-      (is (some? (re-find #"Options must appear before arguments" (:message result))))))
+      (is (some? (re-find #"Unknown option" (:message result))))))
+
+  (testing "missing option value at the end is an error"
+    (let [result (cli/parse app ["create" "feature/login" "--base"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing value" (:message result))))))
+
+  (testing "--help after a positional shows command help"
+    (let [result (cli/parse app ["create" "feature/login" "--help"])]
+      (is (= :help (:status result)))
+      (is (= "create" (:name (:command result))))))
+
+  (testing "--version after a positional prints version"
+    (let [result (cli/parse app ["create" "feature/login" "--version"])]
+      (is (= :version (:status result)))
+      (is (= "wtr 0.1.0" (:text result)))))
+
+  (testing "-- after a positional still ends option parsing"
+    (let [result (cli/parse two-arg-app ["copy" "a" "--" "-b"])]
+      (is (= :ok (:status result)))
+      (is (= {:src "a"
+              :dst "-b"} (get-in result [:context :args])))))
 
   (testing "end-of-options treats following values as positional"
     (let [literal-app {:name "lit"
