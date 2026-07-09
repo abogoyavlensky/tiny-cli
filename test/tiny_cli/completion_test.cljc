@@ -57,8 +57,16 @@
     (is (= ["--base-dir" "--force" "--help"]
            (completion/candidates app ["remove"] "-"))))
 
-  (testing "no flags after a positional (tiny-cli rejects options there)"
-    (is (= [] (completion/candidates app ["remove" "feat-x"] "-")))))
+  (testing "flags after a positional on a regular command"
+    (is (= ["--base-dir" "--force" "--help"]
+           (completion/candidates app ["remove" "feat-x"] "-"))))
+
+  (testing "no flags after the first positional on a variadic command"
+    (is (= [] (completion/candidates app ["run" "feat-x"] "-"))))
+
+  (testing "flags before the first positional on a variadic command still complete"
+    (is (= ["--base-dir" "--help"]
+           (completion/candidates app ["run"] "-")))))
 
 (deftest candidates-positional-complete
   (testing "a fn :complete supplies the positional candidates"
@@ -78,6 +86,30 @@
 
   (testing "the variadic tail offers nothing (shell falls back to files)"
     (is (= [] (completion/candidates app ["run" "feat-x"] "")))))
+
+;; Variadic payload counting: once a variadic command has its first positional,
+;; every remaining word is payload — even dash words and value-option spellings.
+(def variadic-app
+  {:name "vly"
+   :opts [{:key :base-dir
+           :long "base-dir"
+           :value? true
+           :complete ["/tmp" "/srv"]}]
+   :commands [{:name "deploy"
+               :args [{:key :service}
+                      {:key :env
+                       :complete ["dev" "prod"]}]
+               :variadic {:key :cmd}}
+              {:name "run"
+               :args [{:key :name}]
+               :variadic {:key :cmd}}]})
+
+(deftest candidates-variadic-payload
+  (testing "a dash word in the variadic payload counts as a positional"
+    (is (= [] (completion/candidates variadic-app ["deploy" "svc" "-x"] ""))))
+
+  (testing "a value-option spelling inside the payload does not swallow the next word"
+    (is (= [] (completion/candidates variadic-app ["run" "feat-x" "--base-dir"] "")))))
 
 (deftest candidates-option-value
   (testing "a value-taking long option completes its :complete"

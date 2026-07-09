@@ -63,7 +63,9 @@
    {:command <spec | :help | :unknown | nil>, :positionals [..],
     :awaiting-option <opt-spec | nil>}. A value-taking option consumes the next
    word; when it is the last word the cursor sits on its value
-   (:awaiting-option). The first non-option word selects the command."
+   (:awaiting-option). The first non-option word selects the command. Once a
+   variadic command has its first positional, every remaining word is payload —
+   counted as a positional even when it looks like an option."
   [app words]
   (loop [ws (seq words)
          command nil
@@ -76,6 +78,9 @@
             more (rest ws)
             value-opt (get (value-option-index app command) w)]
         (cond
+          (and (map? command) (:variadic command) (seq positionals))
+          (recur more command (conj positionals w))
+
           value-opt
           (if (empty? more)
             {:command command
@@ -115,7 +120,12 @@
         (= :unknown command)
         []
 
-        (and (str/starts-with? cur "-") (empty? positionals))
+        ;; Flags: always offered on a non-variadic command (options interleave
+        ;; with positionals); on a variadic command only before the first
+        ;; positional, since after it every word is payload.
+        (and (str/starts-with? cur "-")
+             (or (empty? positionals)
+                 (and (map? command) (not (:variadic command)))))
         (if (map? command)
           (concat (long-flags (:opts app))
                   (long-flags (:opts command))

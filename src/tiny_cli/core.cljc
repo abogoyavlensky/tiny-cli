@@ -567,16 +567,12 @@
                 more (vec (rest tokens))]
             (cond
               ;; Arguments phase: every remaining token is positional, taken
-              ;; verbatim. `:args` (entered at the first positional) rejects an
-              ;; option-like token on a non-variadic command; `:args-raw`
-              ;; (entered via `--`) never rejects; a variadic command slurps
-              ;; option-like tokens into its trailing vector either way.
+              ;; verbatim. `:args` is variadic rest-mode (entered at a variadic
+              ;; command's first positional); `:args-raw` is entered via `--`.
+              ;; A non-variadic command never reaches this branch: it stays in
+              ;; `:options`, interleaving options and positionals freely.
               (not= :options (:phase state))
-              (if (and (= :args (:phase state))
-                       (not (:variadic command))
-                       (option-token? token))
-                (error-result (str "Options must appear before arguments: " token))
-                (recur more command (update state :positionals conj token)))
+              (recur more command (update state :positionals conj token))
 
               (= "--version" token)
               (version-available app)
@@ -651,11 +647,13 @@
                   :else
                   (recur (:tokens parsed) command (:state parsed))))
 
-              ;; First positional token: enter the arguments phase and collect.
+              ;; Positional token. A variadic command's first positional starts
+              ;; rest-mode: everything after it is payload, so options must come
+              ;; before it. A non-variadic command stays in the options phase,
+              ;; letting options appear before, between, or after positionals.
               :else
-              (recur more command (-> state
-                                      (assoc :phase :args)
-                                      (update :positionals conj token)))))
+              (recur more command (cond-> (update state :positionals conj token)
+                                    (:variadic command) (assoc :phase :args)))))
           (if command
             (let [context (finalize-context app command state)]
               (if (= :error (:status context))
@@ -686,15 +684,25 @@
       (assoc result :result ((:run (:command result)) (:context result)))
       result)))
 
+;; print then flush: run! calls System/exit right after writing, and the
+;; JVM/Babashka exit discards anything still buffered in the stream. The :lg
+;; branch must exist — let-go's whole-file loader drops everything after a
+;; top-level reader conditional with no matching branch.
+#?(:lg (do)
+   :clj (defn- print-flush!
+          [s]
+          (print s)
+          (flush)))
+
 (defn- write-out!
   [s]
   #?(:lg (write! *out* s)
-     :default (print s)))
+     :default (print-flush! s)))
 
 (defn- write-err!
   [s]
   #?(:lg (write! *err* s)
-     :default (binding [*out* *err*] (print s))))
+     :default (binding [*out* *err*] (print-flush! s))))
 
 (defn- exit!
   [code]
