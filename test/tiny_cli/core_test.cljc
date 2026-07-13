@@ -802,6 +802,30 @@
       (is (= :ok (:status result)))
       (is (= ["-la"] (get-in result [:context :args :cmd]))))))
 
+(deftest optional-arg-spec-validation
+  (testing "optional? on a non-last arg is a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :args [{:key :a
+                                       :optional? true}
+                                      {:key :b}]
+                               :run create!}]}
+          result (cli/parse bad-app ["go" "x" "y"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Optional arg must be last" (:message result))))))
+
+  (testing "optional? combined with a variadic is a spec error"
+    (let [bad-app {:name "bad"
+                   :commands [{:name "go"
+                               :args [{:key :a
+                                       :optional? true}]
+                               :variadic {:key :rest}
+                               :run create!}]}
+          result (cli/parse bad-app ["go" "x"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Optional arg cannot be combined with a variadic"
+                          (:message result)))))))
+
 (def hidden-app
   {:name "wtr"
    :version "0.1.0"

@@ -298,6 +298,11 @@
           k
           (recur (conj seen k) (rest remaining)))))))
 
+(defn- misplaced-optional-arg
+  "An arg with :optional? that is not the last in :args, else nil."
+  [args]
+  (first (filter :optional? (butlast args))))
+
 (defn- duplicate-in
   [xs]
   (loop [seen #{}
@@ -363,6 +368,13 @@
 
     (first-duplicate-key (arg-specs command))
     (error-result (str "Duplicate arg key: " (first-duplicate-key (arg-specs command))))
+
+    (misplaced-optional-arg (:args command))
+    (error-result (str "Optional arg must be last: "
+                       (key-placeholder (:key (misplaced-optional-arg (:args command))))))
+
+    (and (:variadic command) (some :optional? (:args command)))
+    (error-result "Optional arg cannot be combined with a variadic arg.")
 
     (first-duplicate-key (:opts command))
     (error-result (str "Duplicate option key: " (first-duplicate-key (:opts command))))
