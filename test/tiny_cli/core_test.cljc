@@ -841,7 +841,8 @@
   (testing "both positionals fill the fixed and optional args"
     (let [result (cli/parse optional-arg-app ["new" "s" "n"])]
       (is (= :ok (:status result)))
-      (is (= {:src "s" :name "n"} (get-in result [:context :args])))))
+      (is (= {:src "s"
+              :name "n"} (get-in result [:context :args])))))
 
   (testing "omitting the optional leaves its key absent"
     (let [result (cli/parse optional-arg-app ["new" "s"])

@@ -9,8 +9,8 @@ version output, and simple validation.
 - **Plain-data spec.** Declare the whole CLI as one map.
 - **Unix-style options.** Short (`-v`) and long (`--verbose`) flags, `--opt value` 
   or `--opt=value`, grouped short flags (`-vf`), global and per-command scopes.
-- **Positional and variadic args.** Fixed required positionals, plus an optional
-  variadic that collects the rest.
+- **Positional and variadic args.** Fixed positionals (the last may be
+  `:optional?`), plus an optional variadic that collects the rest.
 - **Validation without coercion.** Per-arg and per-option `:validate` predicates.
 - **Generated help.** `--help`, `-h`, `help <command>`, `-v`, `--version`,
   work with no extra code. Mark a command `:hidden?` to keep it out of help while it
@@ -227,12 +227,16 @@ its possible values; the sections that follow spell out the rules in detail.
    ; true hides the command from root help; it still runs, and
    ; `help <command>` still shows its help.
    :hidden? false
-   ; Fixed positional args, in order. Every declared arg is required.
+   ; Fixed positional args, in order. Each is required unless it is the last
+   ; and marked :optional? (see Optional Trailing Arg).
    :args
    [{; Keyword used in the handler's :args map. Required.
      :key :name
      ; Description shown in command help.
      :doc "Item name."
+     ; When true, this arg may be omitted. Allowed only on the last arg, and
+     ; not together with :variadic. Omitted -> its key is absent from :args.
+     :optional? false
      ; {:pred fn :msg "message"} validation spec.
      :validate {:pred non-blank? :msg "NAME is required."}
      ; Value-completion candidates: a vector of strings or a (fn [ctx]).
@@ -315,6 +319,31 @@ with a dash:
 ```bash
 deploy service -- --weird-name
 ```
+
+## Optional Trailing Arg
+
+The last fixed arg may set `:optional? true`, letting the user omit it. When
+omitted, its key is absent from the handler's `:args` map, so a lookup returns
+`nil`. Usage renders it in square brackets — `[NAME]` rather than `<NAME>`.
+
+```clojure
+{:name "new"
+ :doc "Generate a project."
+ :args [{:key :source :doc "Template source."}
+        {:key :name :optional? true :doc "Project name; prompted when omitted."}]
+ :run new!}
+```
+
+```bash
+tool new ./tmpl my-app   # {:source "./tmpl" :name "my-app"}
+tool new ./tmpl          # {:source "./tmpl"}      (no :name key)
+tool new                 # error: Missing argument: SOURCE
+tool new ./tmpl a b      # error: Too many arguments.
+```
+
+`:optional?` is allowed only on the last arg and cannot be combined with a
+`:variadic`; either is a spec error. There is no `:default` for args — supply a
+fallback in the handler.
 
 ## Variadic Trailing Args
 
