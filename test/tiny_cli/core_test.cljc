@@ -826,6 +826,40 @@
       (is (some? (re-find #"Optional arg cannot be combined with a variadic"
                           (:message result)))))))
 
+(def optional-arg-app
+  {:name "gen"
+   :commands [{:name "new"
+               :doc "Generate a project."
+               :args [{:key :src
+                       :doc "Template source."}
+                      {:key :name
+                       :optional? true
+                       :doc "Project name."}]
+               :run create!}]})
+
+(deftest optional-arg-parsing
+  (testing "both positionals fill the fixed and optional args"
+    (let [result (cli/parse optional-arg-app ["new" "s" "n"])]
+      (is (= :ok (:status result)))
+      (is (= {:src "s" :name "n"} (get-in result [:context :args])))))
+
+  (testing "omitting the optional leaves its key absent"
+    (let [result (cli/parse optional-arg-app ["new" "s"])
+          args (get-in result [:context :args])]
+      (is (= :ok (:status result)))
+      (is (= {:src "s"} args))
+      (is (false? (contains? args :name)))))
+
+  (testing "omitting the required arg is a Missing argument error"
+    (let [result (cli/parse optional-arg-app ["new"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Missing argument" (:message result))))))
+
+  (testing "more positionals than declared is a Too many arguments error"
+    (let [result (cli/parse optional-arg-app ["new" "s" "n" "extra"])]
+      (is (= :error (:status result)))
+      (is (some? (re-find #"Too many arguments" (:message result)))))))
+
 (def hidden-app
   {:name "wtr"
    :version "0.1.0"

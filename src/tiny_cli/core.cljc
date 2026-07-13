@@ -488,10 +488,13 @@
   (let [fixed-specs (:args command)
         variadic (:variadic command)
         arg-count (count fixed-specs)
+        required-count (if (and (seq fixed-specs) (:optional? (last fixed-specs)))
+                         (dec arg-count)
+                         arg-count)
         positionals (:positionals state)
         provided-count (count positionals)]
     (cond
-      (< provided-count arg-count)
+      (< provided-count required-count)
       (error-result (str "Missing argument: "
                          (key-placeholder (:key (nth fixed-specs provided-count)))))
 
