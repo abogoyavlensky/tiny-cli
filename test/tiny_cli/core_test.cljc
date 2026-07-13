@@ -860,6 +860,12 @@
       (is (= :error (:status result)))
       (is (some? (re-find #"Too many arguments" (:message result)))))))
 
+(deftest optional-arg-help
+  (testing "command help renders a required arg as <SRC> and an optional as [NAME]"
+    (let [text (cli/command-help optional-arg-app "new")]
+      (is (some? (re-find #"<SRC>" text)))
+      (is (some? (re-find #"\[NAME\]" text))))))
+
 (def hidden-app
   {:name "wtr"
    :version "0.1.0"

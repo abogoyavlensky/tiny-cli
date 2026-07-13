@@ -80,7 +80,10 @@
 
 (defn- arg-placeholder
   [arg]
-  (str "<" (key-placeholder (:key arg)) ">"))
+  (let [ph (key-placeholder (:key arg))]
+    (if (:optional? arg)
+      (str "[" ph "]")
+      (str "<" ph ">"))))
 
 (defn- variadic-placeholder
   [variadic]
